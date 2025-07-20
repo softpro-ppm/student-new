@@ -744,3 +744,81 @@
             return true;
         }
     </script>
+
+<?php
+// Render Header Function
+function renderHeader() {
+    global $currentUser, $pageTitle;
+    ?>
+    <!-- Header/Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="dashboard.php">
+                <i class="fas fa-graduation-cap me-2"></i>
+                Student Management System
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i>
+                            <?php echo htmlspecialchars($currentUser['name'] ?? 'User'); ?>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="dashboard.php"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <?php
+}
+
+// Render Sidebar Function
+function renderSidebar($activePage = '') {
+    global $currentUser;
+    
+    $menuItems = [
+        ['icon' => 'fas fa-tachometer-alt', 'text' => 'Dashboard', 'url' => 'dashboard.php', 'roles' => ['admin', 'training_partner', 'student']],
+        ['icon' => 'fas fa-building', 'text' => 'Training Centers', 'url' => 'training-centers.php', 'roles' => ['admin']],
+        ['icon' => 'fas fa-users', 'text' => 'Students', 'url' => 'students.php', 'roles' => ['admin', 'training_partner']],
+        ['icon' => 'fas fa-money-bill-wave', 'text' => 'Fees', 'url' => 'fees.php', 'roles' => ['admin', 'training_partner']],
+        ['icon' => 'fas fa-users-class', 'text' => 'Batches', 'url' => 'batches.php', 'roles' => ['admin', 'training_partner']],
+        ['icon' => 'fas fa-clipboard-list', 'text' => 'Assessments', 'url' => 'assessments.php', 'roles' => ['admin', 'training_partner']],
+        ['icon' => 'fas fa-chart-line', 'text' => 'Results', 'url' => 'results.php', 'roles' => ['admin', 'training_partner', 'student']],
+        ['icon' => 'fas fa-certificate', 'text' => 'Certification', 'url' => 'certification.php', 'roles' => ['admin', 'training_partner', 'student']],
+        ['icon' => 'fas fa-cogs', 'text' => 'Masters', 'url' => 'masters.php', 'roles' => ['admin']],
+        ['icon' => 'fas fa-file-alt', 'text' => 'Reports', 'url' => 'reports.php', 'roles' => ['admin', 'training_partner']],
+        ['icon' => 'fas fa-user-cog', 'text' => 'Settings', 'url' => 'settings.php', 'roles' => ['admin', 'training_partner', 'student']]
+    ];
+    ?>
+    
+    <!-- Sidebar -->
+    <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse" style="margin-top: 56px;">
+        <div class="position-sticky pt-3">
+            <ul class="nav flex-column">
+                <?php foreach ($menuItems as $item): ?>
+                    <?php if (in_array($currentUser['role'], $item['roles'])): ?>
+                        <li class="nav-item">
+                            <a class="nav-link <?php echo ($activePage === str_replace('.php', '', $item['url'])) ? 'active' : ''; ?>" 
+                               href="<?php echo $item['url']; ?>">
+                                <i class="<?php echo $item['icon']; ?> me-2"></i>
+                                <?php echo $item['text']; ?>
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </nav>
+    <?php
+}
+?>
