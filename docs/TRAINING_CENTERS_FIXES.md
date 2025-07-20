@@ -19,6 +19,11 @@
 - **Problem**: Multiple `session_start()` calls in included files
 - **Impact**: PHP warnings and potential session issues
 
+### 5. Missing Database Tables
+- **Problem**: Tables like `fees`, `students`, `batches` don't exist in the database
+- **Impact**: Fatal PDO errors when trying to query non-existent tables
+- **Error**: `SQLSTATE[42S02]: Base table or view not found: 1146 Table 'fees' doesn't exist`
+
 ## Fixes Implemented:
 
 ### 1. Database Migration Script (`migrate_db.php`)
@@ -53,10 +58,21 @@ if (session_status() === PHP_SESSION_NONE) {
 - Error reporting enabled for troubleshooting
 - Better error handling and logging
 
+### 6. Table Existence Checking
+- Modified queries to check if tables exist before using them
+- Graceful degradation when tables are missing
+- Smart statistics calculation based on available tables
+
+### 7. Database Table Creator (`check_tables.php`)
+- Automatically detects missing tables
+- Creates all required tables with proper structure
+- Shows table status and record counts
+
 ## Files Modified:
-- `public/training-centers.php` - Made error-resistant
+- `public/training-centers.php` - Made error-resistant with table checking
 - `public/training-centers-simple.php` - Simple fallback version
 - `public/migrate_db.php` - Database migration script
+- `public/check_tables.php` - **NEW** - Table existence checker and creator
 - `public/test_training_centers.php` - Testing utilities
 - `includes/auth.php` - Fixed session conflicts
 - `config/database.php` - Updated table schemas
@@ -64,16 +80,19 @@ if (session_status() === PHP_SESSION_NONE) {
 - `public/unauthorized.php` - Created missing error page
 
 ## Testing Steps:
-1. Visit `migrate_db.php` to update database schema
-2. Try `training-centers-simple.php` for basic functionality
-3. Use `test_training_centers.php` to verify database connectivity
-4. Access `login.php?debug=1` to troubleshoot login issues
+1. **FIRST** - Visit `check_tables.php` to verify and create missing database tables
+2. Visit `migrate_db.php` to update database schema (add missing columns)
+3. Try `training-centers-simple.php` for basic functionality
+4. Use `test_training_centers.php` to verify database connectivity
+5. Access `login.php?debug=1` to troubleshoot login issues
+6. Try the full `training-centers.php` once tables exist
 
 ## Recommendations:
-1. Run the migration script first to update the database
-2. Use the simple version until complex features are needed
-3. Test login functionality with debug mode
-4. Gradually add complex features after basic functionality works
+1. **CRITICAL** - Run `check_tables.php` first to create missing database tables
+2. Run the migration script to add missing columns to existing tables
+3. Use the simple version until complex features are needed
+4. Test login functionality with debug mode
+5. Gradually add complex features after basic functionality works
 
 ## Success Indicators:
 - ✅ Login page loads without errors

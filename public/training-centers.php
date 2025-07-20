@@ -228,42 +228,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get training centers with statistics
 try {
-    $stmt = $db->prepare("
-        SELECT tc.*, 
-               COUNT(DISTINCT s.id) as total_students,
-               COUNT(DISTINCT CASE WHEN s.status = 'active' THEN s.id END) as active_students,
-               COALESCE(SUM(f.amount), 0) as total_fees_collected,
-               COUNT(DISTINCT b.id) as total_batches
-        FROM training_centers tc
-        LEFT JOIN students s ON tc.id = s.training_center_id
-        LEFT JOIN fees f ON s.id = f.student_id AND f.status = 'paid'
-        LEFT JOIN batches b ON tc.id IN (
-            SELECT DISTINCT s2.training_center_id 
-            FROM students s2 
-            WHERE s2.batch_id = b.id AND s2.training_center_id IS NOT NULL
-        )
-        GROUP BY tc.id
-        ORDER BY tc.name
-    ");
+    // First, check which tables exist
+    $tablesExist = [];
+    foreach (['students', 'fees', 'batches'] as $table) {
+        try {
+            $stmt = $db->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$table]);
+            $tablesExist[$table] = $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            $tablesExist[$table] = false;
+        }
+    }
+    
+    // Get basic training centers data first
+    $stmt = $db->prepare("SELECT * FROM training_centers ORDER BY name");
     $stmt->execute();
     $trainingCenters = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    // If training_center_id column doesn't exist in students table, get basic training centers data
-    if (strpos($e->getMessage(), 'training_center_id') !== false) {
-        $stmt = $db->prepare("
-            SELECT tc.*, 
-                   0 as total_students,
-                   0 as active_students,
-                   0 as total_fees_collected,
-                   0 as total_batches
-            FROM training_centers tc
-            ORDER BY tc.name
-        ");
-        $stmt->execute();
-        $trainingCenters = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } else {
-        throw $e;
+    
+    // Add statistics if related tables exist
+    foreach ($trainingCenters as &$center) {
+        $center['total_students'] = 0;
+        $center['active_students'] = 0;
+        $center['total_fees_collected'] = 0;
+        $center['total_batches'] = 0;
+        
+        // Count students if table exists and has training_center_id column
+        if ($tablesExist['students']) {
+            try {
+                // Check if training_center_id column exists
+                $stmt = $db->prepare("SHOW COLUMNS FROM students LIKE 'training_center_id'");
+                $stmt->execute();
+                if ($stmt->rowCount() > 0) {
+                    $stmt = $db->prepare("SELECT COUNT(*) as total, COUNT(CASE WHEN status = 'active' THEN 1 END) as active FROM students WHERE training_center_id = ?");
+                    $stmt->execute([$center['id']]);
+                    $studentStats = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $center['total_students'] = $studentStats['total'] ?? 0;
+                    $center['active_students'] = $studentStats['active'] ?? 0;
+                }
+            } catch (PDOException $e) {
+                // Ignore if column doesn't exist
+            }
+        }
+        
+        // Count fees if table exists
+        if ($tablesExist['fees'] && $center['total_students'] > 0) {
+            try {
+                $stmt = $db->prepare("
+                    SELECT COALESCE(SUM(f.amount), 0) as total_fees 
+                    FROM fees f 
+                    JOIN students s ON f.student_id = s.id 
+                    WHERE s.training_center_id = ? AND f.status = 'paid'
+                ");
+                $stmt->execute([$center['id']]);
+                $feeStats = $stmt->fetch(PDO::FETCH_ASSOC);
+                $center['total_fees_collected'] = $feeStats['total_fees'] ?? 0;
+            } catch (PDOException $e) {
+                // Ignore if tables don't have proper structure
+            }
+        }
+        
+        // Count batches if table exists
+        if ($tablesExist['batches'] && $center['total_students'] > 0) {
+            try {
+                $stmt = $db->prepare("
+                    SELECT COUNT(DISTINCT b.id) as total_batches 
+                    FROM batches b 
+                    JOIN students s ON s.batch_id = b.id 
+                    WHERE s.training_center_id = ?
+                ");
+                $stmt->execute([$center['id']]);
+                $batchStats = $stmt->fetch(PDO::FETCH_ASSOC);
+                $center['total_batches'] = $batchStats['total_batches'] ?? 0;
+            } catch (PDOException $e) {
+                // Ignore if tables don't have proper structure
+            }
+        }
     }
+    
+} catch (PDOException $e) {
+    // If even basic query fails, show error and use empty array
+    $errorMessage = "Database error: " . $e->getMessage();
+    $trainingCenters = [];
 }
 
 include '../includes/layout.php';
