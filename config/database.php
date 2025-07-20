@@ -157,17 +157,19 @@ function createTables() {
     // Assessments table
     $createAssessments = "CREATE TABLE IF NOT EXISTS assessments (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        batch_id INT,
-        course_id INT,
         title VARCHAR(255) NOT NULL,
+        course_id INT,
         description TEXT,
+        time_limit INT DEFAULT 60,
         total_marks INT DEFAULT 100,
-        passing_marks INT DEFAULT 60,
-        duration_minutes INT DEFAULT 60,
-        status ENUM('draft', 'active', 'completed') DEFAULT 'draft',
+        passing_marks INT DEFAULT 70,
+        max_attempts INT DEFAULT 3,
+        status ENUM('draft', 'active', 'closed') DEFAULT 'draft',
+        created_by INT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (batch_id) REFERENCES batches(id),
-        FOREIGN KEY (course_id) REFERENCES courses(id)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses(id),
+        FOREIGN KEY (created_by) REFERENCES users(id)
     )";
     
     // Assessment Questions table
@@ -175,17 +177,52 @@ function createTables() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         assessment_id INT,
         question TEXT NOT NULL,
-        option_a VARCHAR(500),
-        option_b VARCHAR(500),
-        option_c VARCHAR(500),
-        option_d VARCHAR(500),
-        correct_answer ENUM('a', 'b', 'c', 'd') NOT NULL,
-        marks INT DEFAULT 1,
+        type ENUM('multiple_choice', 'true_false', 'text') NOT NULL,
+        options JSON,
+        correct_answer TEXT NOT NULL,
+        marks INT DEFAULT 5,
+        created_by INT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
+        FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id)
     )";
     
-    // Results table
+    // Student Assessments table (for tracking individual attempts)
+    $createStudentAssessments = "CREATE TABLE IF NOT EXISTS student_assessments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT,
+        assessment_id INT,
+        token VARCHAR(255) UNIQUE NOT NULL,
+        status ENUM('pending', 'in_progress', 'completed') DEFAULT 'pending',
+        score INT DEFAULT 0,
+        percentage DECIMAL(5,2) DEFAULT 0,
+        result_status ENUM('passed', 'failed') NULL,
+        time_spent INT DEFAULT 0,
+        attempts INT DEFAULT 0,
+        started_at TIMESTAMP NULL,
+        completed_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+        FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_student_assessment (student_id, assessment_id)
+    )";
+    
+    // Assessment Results table (detailed question-wise results)
+    $createAssessmentResults = "CREATE TABLE IF NOT EXISTS assessment_results (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_assessment_id INT,
+        question_id INT,
+        student_answer TEXT,
+        correct_answer TEXT,
+        is_correct BOOLEAN DEFAULT FALSE,
+        marks_obtained INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_assessment_id) REFERENCES student_assessments(id) ON DELETE CASCADE,
+        FOREIGN KEY (question_id) REFERENCES assessment_questions(id) ON DELETE CASCADE
+    )";
+    
+    // Results table (legacy - keeping for compatibility)
     $createResults = "CREATE TABLE IF NOT EXISTS results (
         id INT AUTO_INCREMENT PRIMARY KEY,
         student_id INT,
@@ -248,6 +285,8 @@ function createTables() {
         $db->exec($createFeePayments);
         $db->exec($createAssessments);
         $db->exec($createAssessmentQuestions);
+        $db->exec($createStudentAssessments);
+        $db->exec($createAssessmentResults);
         $db->exec($createResults);
         $db->exec($createCertificates);
         $db->exec($createSettings);
@@ -279,6 +318,57 @@ function createTables() {
             $insertSector = $db->prepare("INSERT INTO sectors (name, code, description) VALUES (?, ?, ?)");
             foreach ($sectors as $sector) {
                 $insertSector->execute($sector);
+            }
+        }
+        
+        // Insert default courses
+        $checkCourses = $db->prepare("SELECT COUNT(*) FROM courses");
+        $checkCourses->execute();
+        
+        if ($checkCourses->fetchColumn() == 0) {
+            // Get sector IDs
+            $getSectors = $db->prepare("SELECT id, code FROM sectors");
+            $getSectors->execute();
+            $sectors = $getSectors->fetchAll(PDO::FETCH_KEY_PAIR);
+            
+            $courses = [
+                ['Web Development', 'WD001', $sectors['IT001'] ?? 1, 6, 15000.00, 'Full Stack Web Development with HTML, CSS, JavaScript, PHP'],
+                ['Digital Marketing', 'DM001', $sectors['IT001'] ?? 1, 3, 8000.00, 'Complete Digital Marketing and Social Media Marketing'],
+                ['Data Entry Operator', 'DE001', $sectors['IT001'] ?? 1, 2, 5000.00, 'Computer Data Entry and MS Office'],
+                ['Nursing Assistant', 'NA001', $sectors['HC001'] ?? 2, 12, 25000.00, 'Healthcare and Patient Care Assistant'],
+                ['Automotive Technician', 'AT001', $sectors['AU001'] ?? 3, 8, 18000.00, 'Vehicle Maintenance and Repair'],
+                ['Retail Sales Associate', 'RS001', $sectors['RT001'] ?? 4, 4, 10000.00, 'Customer Service and Sales'],
+                ['Banking Operations', 'BO001', $sectors['BK001'] ?? 5, 6, 12000.00, 'Banking Procedures and Customer Relations']
+            ];
+            
+            $insertCourse = $db->prepare("INSERT INTO courses (name, code, sector_id, duration_months, fee_amount, description) VALUES (?, ?, ?, ?, ?, ?)");
+            foreach ($courses as $course) {
+                $insertCourse->execute($course);
+            }
+        }
+        
+        // Insert default settings
+        $checkSettings = $db->prepare("SELECT COUNT(*) FROM settings");
+        $checkSettings->execute();
+        
+        if ($checkSettings->fetchColumn() == 0) {
+            $settings = [
+                ['site_name', 'Student Management System'],
+                ['registration_fee', '100'],
+                ['currency', 'INR'],
+                ['academic_year', '2024-25'],
+                ['whatsapp_api_url', ''],
+                ['email_smtp_host', ''],
+                ['email_smtp_port', '587'],
+                ['email_smtp_username', ''],
+                ['email_smtp_password', ''],
+                ['certificate_template_path', ''],
+                ['assessment_passing_marks', '70']
+            ];
+            
+            $insertSetting = $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)");
+            foreach ($settings as $setting) {
+                $insertSetting->execute($setting);
             }
         }
         
