@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once '../config/database.php';
 
 class Auth {
@@ -12,6 +14,14 @@ class Auth {
     
     public function login($username, $password) {
         try {
+            // Validate inputs
+            if (empty($username) || empty($password)) {
+                return [
+                    'success' => false,
+                    'message' => 'Username and password are required'
+                ];
+            }
+            
             $query = "SELECT id, username, email, password, role, name, phone, status FROM users WHERE username = ? AND status = 'active'";
             $stmt = $this->db->prepare($query);
             $stmt->execute([$username]);
@@ -46,9 +56,16 @@ class Auth {
                 ];
             }
         } catch (PDOException $e) {
+            error_log("Login error: " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Database error: ' . $e->getMessage()
+                'message' => 'Database error occurred. Please try again.'
+            ];
+        } catch (Exception $e) {
+            error_log("Login error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'An error occurred during login. Please try again.'
             ];
         }
     }
@@ -76,7 +93,7 @@ class Auth {
     
     public function requireLogin() {
         if (!$this->isLoggedIn()) {
-            header('Location: /public/login.php');
+            header('Location: login.php');
             exit();
         }
     }
@@ -85,7 +102,7 @@ class Auth {
         $this->requireLogin();
         
         if (!$this->hasRole($roles)) {
-            header('Location: /public/unauthorized.php');
+            header('Location: unauthorized.php');
             exit();
         }
     }

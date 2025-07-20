@@ -1,4 +1,8 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 require_once '../includes/auth.php';
 
@@ -20,13 +24,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($username) || empty($password)) {
         $error = 'Please enter both username and password';
     } else {
-        $result = $auth->login($username, $password);
-        
-        if ($result['success']) {
-            header('Location: dashboard.php');
-            exit();
-        } else {
-            $error = $result['message'];
+        try {
+            $result = $auth->login($username, $password);
+            
+            if ($result['success']) {
+                header('Location: dashboard.php');
+                exit();
+            } else {
+                $error = $result['message'];
+            }
+        } catch (Exception $e) {
+            $error = 'Login error: ' . $e->getMessage();
         }
     }
 }
@@ -216,6 +224,26 @@ $pageTitle = 'Login - Student Management System';
                 </div>
             <?php endif; ?>
             
+            <!-- Debug Info (remove in production) -->
+            <?php if (isset($_GET['debug'])): ?>
+                <div class="alert alert-info" role="alert">
+                    <h6>Debug Information:</h6>
+                    <small>
+                        Session Status: <?php echo session_status() === PHP_SESSION_ACTIVE ? 'Active' : 'Inactive'; ?><br>
+                        Auth Class: <?php echo class_exists('Auth') ? 'Loaded' : 'Not Found'; ?><br>
+                        POST Data: <?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? 'Received' : 'None'; ?><br>
+                        Database: <?php 
+                            try {
+                                $db = (new Database())->getConnection();
+                                echo $db ? 'Connected' : 'Failed';
+                            } catch (Exception $e) {
+                                echo 'Error: ' . $e->getMessage();
+                            }
+                        ?>
+                    </small>
+                </div>
+            <?php endif; ?>
+            
             <form method="POST" action="" id="loginForm">
                 <div class="form-floating">
                     <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
@@ -266,9 +294,14 @@ $pageTitle = 'Login - Student Management System';
     
     <!-- Public Verification Link -->
     <div class="text-center mt-3">
-        <a href="verify-certificate.php" class="text-white text-decoration-none">
+        <a href="verify-certificate.php" class="text-white text-decoration-none me-3">
             <i class="fas fa-certificate me-2"></i>Verify Certificate
         </a>
+        <?php if (!isset($_GET['debug'])): ?>
+            <a href="?debug=1" class="text-white text-decoration-none">
+                <i class="fas fa-bug me-2"></i>Debug Mode
+            </a>
+        <?php endif; ?>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

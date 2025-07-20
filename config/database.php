@@ -13,10 +13,42 @@ class Database {
             $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
             $this->conn->exec("set names utf8");
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Initialize database tables and demo users
+            $this->initializeDemoData();
+            
         } catch(PDOException $exception) {
-            echo "Connection error: " . $exception->getMessage();
+            error_log("Database connection error: " . $exception->getMessage());
+            echo "Connection error. Please check configuration.";
         }
         return $this->conn;
+    }
+    
+    private function initializeDemoData() {
+        try {
+            // Check if admin user exists
+            $checkAdmin = $this->conn->prepare("SELECT COUNT(*) FROM users WHERE username = 'admin'");
+            $checkAdmin->execute();
+            
+            if ($checkAdmin->fetchColumn() == 0) {
+                $adminPassword = password_hash('admin123', PASSWORD_DEFAULT);
+                $insertAdmin = $this->conn->prepare("INSERT INTO users (username, email, password, role, name, phone, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $insertAdmin->execute(['admin', 'admin@example.com', $adminPassword, 'admin', 'System Administrator', '9999999999', 'active']);
+            }
+            
+            // Check if student user exists
+            $checkStudent = $this->conn->prepare("SELECT COUNT(*) FROM users WHERE username = '9999999999'");
+            $checkStudent->execute();
+            
+            if ($checkStudent->fetchColumn() == 0) {
+                $studentPassword = password_hash('softpro@123', PASSWORD_DEFAULT);
+                $insertStudent = $this->conn->prepare("INSERT INTO users (username, email, password, role, name, phone, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $insertStudent->execute(['9999999999', 'student@example.com', $studentPassword, 'student', 'Demo Student', '9999999999', 'active']);
+            }
+            
+        } catch(PDOException $e) {
+            error_log("Demo data initialization error: " . $e->getMessage());
+        }
     }
 }
 
