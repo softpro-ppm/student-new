@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Generate Certificates",
+			"type": "shell",
+			"command": "cd scripts && php auto_generate_certificates.php",
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}
