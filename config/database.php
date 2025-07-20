@@ -2,9 +2,9 @@
 // Database Configuration
 class Database {
     private $host = 'localhost';
-    private $db_name = 'student_management';
-    private $username = 'root';
-    private $password = '';
+    private $db_name = 'u820431346_student_new';
+    private $username = 'u820431346_student_new';
+    private $password = 'Softpro@123';
     private $conn;
 
     public function getConnection() {
