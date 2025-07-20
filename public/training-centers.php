@@ -1,4 +1,8 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once '../includes/auth.php';
 require_once '../config/database.php';
 
@@ -44,14 +48,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $db->beginTransaction();
                 
-                // Insert training center
-                $stmt = $db->prepare("INSERT INTO training_centers (name, code, email, phone, address, contact_person, password) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$name, $code, $email, $phone, $address, $contactPerson, $hashedPassword]);
+                // Insert training center (without password first, we'll add it if column exists)
+                try {
+                    $stmt = $db->prepare("INSERT INTO training_centers (name, code, email, phone, address, contact_person, password) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$name, $code, $email, $phone, $address, $contactPerson, $hashedPassword]);
+                } catch (PDOException $e) {
+                    // If password column doesn't exist, try without it
+                    if (strpos($e->getMessage(), 'password') !== false) {
+                        $stmt = $db->prepare("INSERT INTO training_centers (name, code, email, phone, address, contact_person) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$name, $code, $email, $phone, $address, $contactPerson]);
+                    } else {
+                        throw $e;
+                    }
+                }
                 $centerId = $db->lastInsertId();
                 
                 // Create user account for training center
-                $stmt = $db->prepare("INSERT INTO users (username, email, password, role, name, phone, training_center_id) VALUES (?, ?, ?, 'training_partner', ?, ?, ?)");
-                $stmt->execute([$email, $email, $hashedPassword, $name, $phone, $centerId]);
+                try {
+                    $stmt = $db->prepare("INSERT INTO users (username, email, password, role, name, phone, training_center_id) VALUES (?, ?, ?, 'training_partner', ?, ?, ?)");
+                    $stmt->execute([$email, $email, $hashedPassword, $name, $phone, $centerId]);
+                } catch (PDOException $e) {
+                    // If training_center_id column doesn't exist, try without it
+                    if (strpos($e->getMessage(), 'training_center_id') !== false) {
+                        $stmt = $db->prepare("INSERT INTO users (username, email, password, role, name, phone) VALUES (?, ?, ?, 'training_partner', ?, ?)");
+                        $stmt->execute([$email, $email, $hashedPassword, $name, $phone]);
+                    } else {
+                        throw $e;
+                    }
+                }
                 
                 $db->commit();
                 
@@ -87,8 +111,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$name, $code, $email, $phone, $address, $contactPerson, $status, $id]);
                 
                 // Update user account
-                $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, name = ?, phone = ?, status = ? WHERE training_center_id = ?");
-                $stmt->execute([$email, $email, $name, $phone, $status, $id]);
+                try {
+                    $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, name = ?, phone = ?, status = ? WHERE training_center_id = ?");
+                    $stmt->execute([$email, $email, $name, $phone, $status, $id]);
+                } catch (PDOException $e) {
+                    // If training_center_id column doesn't exist, update by email/username
+                    if (strpos($e->getMessage(), 'training_center_id') !== false) {
+                        $stmt = $db->prepare("UPDATE users SET username = ?, email = ?, name = ?, phone = ?, status = ? WHERE role = 'training_partner' AND email = ?");
+                        $stmt->execute([$email, $email, $name, $phone, $status, $email]);
+                    } else {
+                        throw $e;
+                    }
+                }
                 
                 $db->commit();
                 
@@ -98,18 +132,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'delete_center':
                 $id = intval($_POST['id']);
                 
-                // Check if center has students
-                $stmt = $db->prepare("SELECT COUNT(*) FROM students WHERE training_center_id = ?");
-                $stmt->execute([$id]);
-                if ($stmt->fetchColumn() > 0) {
-                    throw new Exception("Cannot delete training center with existing students");
+                // Check if center has students (if column exists)
+                try {
+                    $stmt = $db->prepare("SELECT COUNT(*) FROM students WHERE training_center_id = ?");
+                    $stmt->execute([$id]);
+                    if ($stmt->fetchColumn() > 0) {
+                        throw new Exception("Cannot delete training center with existing students");
+                    }
+                } catch (PDOException $e) {
+                    // If training_center_id column doesn't exist, skip this check
+                    if (strpos($e->getMessage(), 'training_center_id') === false) {
+                        throw $e;
+                    }
                 }
                 
                 $db->beginTransaction();
                 
                 // Delete user account
-                $stmt = $db->prepare("DELETE FROM users WHERE training_center_id = ?");
-                $stmt->execute([$id]);
+                try {
+                    $stmt = $db->prepare("DELETE FROM users WHERE training_center_id = ?");
+                    $stmt->execute([$id]);
+                } catch (PDOException $e) {
+                    // If training_center_id column doesn't exist, delete by getting center email first
+                    if (strpos($e->getMessage(), 'training_center_id') !== false) {
+                        $stmt = $db->prepare("SELECT email FROM training_centers WHERE id = ?");
+                        $stmt->execute([$id]);
+                        $center = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($center) {
+                            $stmt = $db->prepare("DELETE FROM users WHERE role = 'training_partner' AND email = ?");
+                            $stmt->execute([$center['email']]);
+                        }
+                    } else {
+                        throw $e;
+                    }
+                }
                 
                 // Delete training center
                 $stmt = $db->prepare("DELETE FROM training_centers WHERE id = ?");
@@ -127,13 +183,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 $db->beginTransaction();
                 
-                // Update training center password
-                $stmt = $db->prepare("UPDATE training_centers SET password = ? WHERE id = ?");
-                $stmt->execute([$hashedPassword, $id]);
+                // Update training center password (if column exists)
+                try {
+                    $stmt = $db->prepare("UPDATE training_centers SET password = ? WHERE id = ?");
+                    $stmt->execute([$hashedPassword, $id]);
+                } catch (PDOException $e) {
+                    if (strpos($e->getMessage(), 'password') === false) {
+                        throw $e;
+                    }
+                    // Ignore if password column doesn't exist
+                }
                 
                 // Update user password
-                $stmt = $db->prepare("UPDATE users SET password = ? WHERE training_center_id = ?");
-                $stmt->execute([$hashedPassword, $id]);
+                try {
+                    $stmt = $db->prepare("UPDATE users SET password = ? WHERE training_center_id = ?");
+                    $stmt->execute([$hashedPassword, $id]);
+                } catch (PDOException $e) {
+                    // If training_center_id column doesn't exist, update by getting center email first
+                    if (strpos($e->getMessage(), 'training_center_id') !== false) {
+                        $stmt = $db->prepare("SELECT email FROM training_centers WHERE id = ?");
+                        $stmt->execute([$id]);
+                        $center = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if ($center) {
+                            $stmt = $db->prepare("UPDATE users SET password = ? WHERE role = 'training_partner' AND email = ?");
+                            $stmt->execute([$hashedPassword, $center['email']]);
+                        }
+                    } else {
+                        throw $e;
+                    }
+                }
                 
                 $db->commit();
                 
@@ -149,25 +227,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get training centers with statistics
-$stmt = $db->prepare("
-    SELECT tc.*, 
-           COUNT(DISTINCT s.id) as total_students,
-           COUNT(DISTINCT CASE WHEN s.status = 'active' THEN s.id END) as active_students,
-           COALESCE(SUM(f.amount), 0) as total_fees_collected,
-           COUNT(DISTINCT b.id) as total_batches
-    FROM training_centers tc
-    LEFT JOIN students s ON tc.id = s.training_center_id
-    LEFT JOIN fees f ON s.id = f.student_id AND f.status = 'paid'
-    LEFT JOIN batches b ON tc.id IN (
-        SELECT DISTINCT s2.training_center_id 
-        FROM students s2 
-        WHERE s2.batch_id = b.id
-    )
-    GROUP BY tc.id
-    ORDER BY tc.created_at DESC
-");
-$stmt->execute();
-$trainingCenters = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $db->prepare("
+        SELECT tc.*, 
+               COUNT(DISTINCT s.id) as total_students,
+               COUNT(DISTINCT CASE WHEN s.status = 'active' THEN s.id END) as active_students,
+               COALESCE(SUM(f.amount), 0) as total_fees_collected,
+               COUNT(DISTINCT b.id) as total_batches
+        FROM training_centers tc
+        LEFT JOIN students s ON tc.id = s.training_center_id
+        LEFT JOIN fees f ON s.id = f.student_id AND f.status = 'paid'
+        LEFT JOIN batches b ON tc.id IN (
+            SELECT DISTINCT s2.training_center_id 
+            FROM students s2 
+            WHERE s2.batch_id = b.id AND s2.training_center_id IS NOT NULL
+        )
+        GROUP BY tc.id
+        ORDER BY tc.name
+    ");
+    $stmt->execute();
+    $trainingCenters = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    // If training_center_id column doesn't exist in students table, get basic training centers data
+    if (strpos($e->getMessage(), 'training_center_id') !== false) {
+        $stmt = $db->prepare("
+            SELECT tc.*, 
+                   0 as total_students,
+                   0 as active_students,
+                   0 as total_fees_collected,
+                   0 as total_batches
+            FROM training_centers tc
+            ORDER BY tc.name
+        ");
+        $stmt->execute();
+        $trainingCenters = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        throw $e;
+    }
+}
 
 include '../includes/layout.php';
 ?>

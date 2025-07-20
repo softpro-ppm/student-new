@@ -66,10 +66,12 @@ function createTables() {
         role ENUM('admin', 'training_partner', 'student') NOT NULL,
         name VARCHAR(255) NOT NULL,
         phone VARCHAR(20),
+        training_center_id INT,
         status ENUM('active', 'inactive') DEFAULT 'active',
         created_by INT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (training_center_id) REFERENCES training_centers(id) ON DELETE SET NULL
     )";
     
     // Training Centers table
@@ -81,9 +83,11 @@ function createTables() {
         phone VARCHAR(20),
         email VARCHAR(255),
         contact_person VARCHAR(255),
+        password VARCHAR(255),
         user_id INT,
         status ENUM('active', 'inactive') DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )";
     
