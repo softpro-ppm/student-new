@@ -13,21 +13,99 @@ echo "<h1>Student Management System - Dummy Data Setup</h1>";
 try {
     echo "<h2>Creating sample training centers...</h2>";
     
-    // Sample Training Centers
-    $trainingCenters = [
-        ['TC001', 'Excel Training Institute', 'excel@example.com', '9876543210', '123 IT Park, Hyderabad', password_hash('tc123', PASSWORD_DEFAULT)],
-        ['TC002', 'Tech Skills Academy', 'techskills@example.com', '9876543211', '456 Tech City, Bangalore', password_hash('tc123', PASSWORD_DEFAULT)],
-        ['TC003', 'Digital Learning Hub', 'digital@example.com', '9876543212', '789 Knowledge Lane, Chennai', password_hash('tc123', PASSWORD_DEFAULT)],
-        ['TC004', 'Professional Skills Center', 'psc@example.com', '9876543213', '321 Education Street, Mumbai', password_hash('tc123', PASSWORD_DEFAULT)],
-        ['TC005', 'Advanced Training Solutions', 'ats@example.com', '9876543214', '654 Learning Boulevard, Pune', password_hash('tc123', PASSWORD_DEFAULT)]
+    // Check if demo data already exists
+    $stmt = $db->prepare("SELECT COUNT(*) FROM training_centers WHERE tc_id LIKE 'TC%'");
+    $stmt->execute();
+    $existingTCs = $stmt->fetchColumn();
+    
+    if ($existingTCs > 0) {
+        echo "<p style='color: orange;'>⚠ Demo training centers already exist. Skipping creation.</p>";
+    } else {
+    
+        // Sample Training Centers
+        $trainingCenters = [
+            ['TC001', 'Excel Training Institute', 'Admin Excel', 'excel@example.com', '9876543210', '123 IT Park', 'Hyderabad', 'Telangana', '500001', password_hash('tc123', PASSWORD_DEFAULT)],
+            ['TC002', 'Tech Skills Academy', 'Admin Tech', 'techskills@example.com', '9876543211', '456 Tech City', 'Bangalore', 'Karnataka', '560001', password_hash('tc123', PASSWORD_DEFAULT)],
+            ['TC003', 'Digital Learning Hub', 'Admin Digital', 'digital@example.com', '9876543212', '789 Knowledge Lane', 'Chennai', 'Tamil Nadu', '600001', password_hash('tc123', PASSWORD_DEFAULT)],
+            ['TC004', 'Professional Skills Center', 'Admin PSC', 'psc@example.com', '9876543213', '321 Education Street', 'Mumbai', 'Maharashtra', '400001', password_hash('tc123', PASSWORD_DEFAULT)],
+            ['TC005', 'Advanced Training Solutions', 'Admin ATS', 'ats@example.com', '9876543214', '654 Learning Boulevard', 'Pune', 'Maharashtra', '411001', password_hash('tc123', PASSWORD_DEFAULT)]
+        ];
+        
+        $stmt = $db->prepare("INSERT INTO training_centers (tc_id, name, contact_person, email, phone, address, city, state, pincode, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        foreach ($trainingCenters as $tc) {
+            try {
+                $stmt->execute($tc);
+            } catch (PDOException $e) {
+                if ($e->getCode() == 23000) { // Integrity constraint violation
+                    echo "<p style='color: orange;'>⚠ Training center {$tc[0]} already exists, skipping...</p>";
+                } else {
+                    throw $e;
+                }
+            }
+        }
+        echo "<p>✓ Created " . count($trainingCenters) . " training centers</p>";
+    }
+
+    echo "<h2>Creating sample sectors...</h2>";
+    
+    // Sample Sectors (required for courses)
+    $sectors = [
+        ['IT-ITeS', 'Information Technology - IT enabled Services', 'Information Technology and IT enabled services sector'],
+        ['HEALTHCARE', 'Healthcare', 'Healthcare and life sciences sector'],
+        ['AUTOMOTIVE', 'Automotive', 'Automotive manufacturing and services sector'],
+        ['RETAIL', 'Retail', 'Retail and customer service sector'],
+        ['BFSI', 'Banking Financial Services Insurance', 'Banking, Financial Services and Insurance sector']
     ];
     
-    $stmt = $db->prepare("INSERT INTO training_centers (tc_id, name, email, phone, address, password) VALUES (?, ?, ?, ?, ?, ?)");
-    foreach ($trainingCenters as $tc) {
-        $stmt->execute($tc);
+    $stmt = $db->prepare("INSERT INTO sectors (code, name, description) VALUES (?, ?, ?)");
+    foreach ($sectors as $sector) {
+        try {
+            $stmt->execute($sector);
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) { // Integrity constraint violation
+                echo "<p style='color: orange;'>⚠ Sector {$sector[0]} already exists, skipping...</p>";
+            } else {
+                throw $e;
+            }
+        }
     }
-    echo "<p>✓ Created " . count($trainingCenters) . " training centers</p>";
+    echo "<p>✓ Created " . count($sectors) . " sectors</p>";
+
+    echo "<h2>Creating sample courses...</h2>";
     
+    // Sample Courses
+    $courses = [
+        ['Web Development Fundamentals', 'WDF001', 'Learn HTML, CSS, JavaScript, PHP basics', 1, 6, 'active'],
+        ['Digital Marketing Specialist', 'DMS001', 'Complete digital marketing course', 1, 3, 'active'],
+        ['Data Entry Operator', 'DEO001', 'Basic computer skills and data entry', 1, 2, 'active'],
+        ['Mobile App Development', 'MAD001', 'Android and iOS app development', 1, 8, 'active'],
+        ['Healthcare Assistant', 'HCA001', 'Basic healthcare and patient care', 2, 12, 'active'],
+        ['Medical Data Entry', 'MDE001', 'Healthcare data management', 2, 4, 'active'],
+        ['Automotive Technician', 'AUT001', 'Basic automotive repair skills', 3, 6, 'active'],
+        ['Auto Electronics', 'AUE001', 'Automotive electrical systems', 3, 4, 'active'],
+        ['Retail Sales Associate', 'RSA001', 'Customer service and sales skills', 4, 3, 'active'],
+        ['Visual Merchandising', 'VMD001', 'Store display and merchandising', 4, 2, 'active'],
+        ['Banking Operations', 'BOP001', 'Basic banking procedures', 5, 6, 'active'],
+        ['Insurance Sales Agent', 'ISA001', 'Insurance products and sales', 5, 4, 'active'],
+        ['Financial Accounting', 'FAC001', 'Basic accounting principles', 5, 5, 'active'],
+        ['Quality Control Inspector', 'QCI001', 'Quality assurance procedures', 3, 3, 'active'],
+        ['Customer Service Executive', 'CSE001', 'Customer support skills', 4, 2, 'active']
+    ];
+    
+    $stmt = $db->prepare("INSERT INTO courses (name, code, description, sector_id, duration_months, status) VALUES (?, ?, ?, ?, ?, ?)");
+    foreach ($courses as $course) {
+        try {
+            $stmt->execute($course);
+        } catch (PDOException $e) {
+            if ($e->getCode() == 23000) { // Integrity constraint violation
+                echo "<p style='color: orange;'>⚠ Course {$course[1]} already exists, skipping...</p>";
+            } else {
+                throw $e;
+            }
+        }
+    }
+    echo "<p>✓ Created " . count($courses) . " courses</p>";
+
     echo "<h2>Creating sample batches...</h2>";
     
     // Sample Batches
