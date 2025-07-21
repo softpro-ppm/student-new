@@ -270,6 +270,99 @@ try {
     $db->exec($createBulkUploads);
     echo "<p class='success'>✓ Created bulk_uploads table</p>";
     
+    // 11. Question Papers table (for assessments)
+    $createQuestionPapers = "CREATE TABLE `question_papers` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `course_id` int(11) NOT NULL,
+        `title` varchar(255) NOT NULL,
+        `description` text DEFAULT NULL,
+        `total_marks` int(11) DEFAULT 100,
+        `duration_minutes` int(11) DEFAULT 60,
+        `passing_marks` int(11) DEFAULT 40,
+        `is_active` tinyint(1) DEFAULT 1,
+        `created_by` int(11) DEFAULT NULL,
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `course_id` (`course_id`),
+        KEY `created_by` (`created_by`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    $db->exec($createQuestionPapers);
+    echo "<p class='success'>✓ Created question_papers table</p>";
+    
+    // 12. Assessments table (depends on students, question_papers)
+    $createAssessments = "CREATE TABLE `assessments` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `student_id` int(11) NOT NULL,
+        `question_paper_id` int(11) NOT NULL,
+        `batch_id` int(11) DEFAULT NULL,
+        `assessment_date` date NOT NULL,
+        `start_time` timestamp NOT NULL,
+        `end_time` timestamp NULL DEFAULT NULL,
+        `status` enum('scheduled','in_progress','completed','missed','cancelled') DEFAULT 'scheduled',
+        `attempt_number` int(11) DEFAULT 1,
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `student_id` (`student_id`),
+        KEY `question_paper_id` (`question_paper_id`),
+        KEY `batch_id` (`batch_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    $db->exec($createAssessments);
+    echo "<p class='success'>✓ Created assessments table</p>";
+    
+    // 13. Results table (depends on assessments)
+    $createResults = "CREATE TABLE `results` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `assessment_id` int(11) NOT NULL,
+        `student_id` int(11) NOT NULL,
+        `question_paper_id` int(11) NOT NULL,
+        `total_marks` int(11) NOT NULL,
+        `obtained_marks` int(11) NOT NULL,
+        `percentage` decimal(5,2) NOT NULL,
+        `grade` varchar(10) DEFAULT NULL,
+        `result_status` enum('pass','fail','absent') NOT NULL,
+        `remarks` text DEFAULT NULL,
+        `result_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `published_by` int(11) DEFAULT NULL,
+        `published_at` timestamp NULL DEFAULT NULL,
+        `is_published` tinyint(1) DEFAULT 0,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `unique_assessment_result` (`assessment_id`),
+        KEY `student_id` (`student_id`),
+        KEY `question_paper_id` (`question_paper_id`),
+        KEY `published_by` (`published_by`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    $db->exec($createResults);
+    echo "<p class='success'>✓ Created results table</p>";
+    
+    // 14. Certificates table (depends on students, results)
+    $createCertificates = "CREATE TABLE `certificates` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `student_id` int(11) NOT NULL,
+        `course_id` int(11) NOT NULL,
+        `result_id` int(11) DEFAULT NULL,
+        `certificate_number` varchar(50) NOT NULL,
+        `issue_date` date NOT NULL,
+        `validity_date` date DEFAULT NULL,
+        `certificate_type` enum('completion','excellence','participation') DEFAULT 'completion',
+        `file_path` varchar(255) DEFAULT NULL,
+        `qr_code` varchar(255) DEFAULT NULL,
+        `verification_code` varchar(50) DEFAULT NULL,
+        `status` enum('generated','issued','verified','revoked') DEFAULT 'generated',
+        `issued_by` int(11) DEFAULT NULL,
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `certificate_number` (`certificate_number`),
+        UNIQUE KEY `verification_code` (`verification_code`),
+        KEY `student_id` (`student_id`),
+        KEY `course_id` (`course_id`),
+        KEY `result_id` (`result_id`),
+        KEY `issued_by` (`issued_by`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    $db->exec($createCertificates);
+    echo "<p class='success'>✓ Created certificates table</p>";
+    
     echo "<h2>Adding foreign key constraints...</h2>";
     
     // Re-enable foreign key checks
@@ -302,6 +395,27 @@ try {
         "ALTER TABLE `bulk_uploads` ADD CONSTRAINT `fk_bulk_uploads_course` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE SET NULL",
         "ALTER TABLE `bulk_uploads` ADD CONSTRAINT `fk_bulk_uploads_batch` FOREIGN KEY (`batch_id`) REFERENCES `batches` (`id`) ON DELETE SET NULL",
         "ALTER TABLE `bulk_uploads` ADD CONSTRAINT `fk_bulk_uploads_training_center` FOREIGN KEY (`training_center_id`) REFERENCES `training_centers` (`id`) ON DELETE SET NULL",
+        
+        // Question Papers table
+        "ALTER TABLE `question_papers` ADD CONSTRAINT `fk_question_papers_course` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `question_papers` ADD CONSTRAINT `fk_question_papers_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL",
+        
+        // Assessments table
+        "ALTER TABLE `assessments` ADD CONSTRAINT `fk_assessments_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `assessments` ADD CONSTRAINT `fk_assessments_question_paper` FOREIGN KEY (`question_paper_id`) REFERENCES `question_papers` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `assessments` ADD CONSTRAINT `fk_assessments_batch` FOREIGN KEY (`batch_id`) REFERENCES `batches` (`id`) ON DELETE SET NULL",
+        
+        // Results table
+        "ALTER TABLE `results` ADD CONSTRAINT `fk_results_assessment` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `results` ADD CONSTRAINT `fk_results_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `results` ADD CONSTRAINT `fk_results_question_paper` FOREIGN KEY (`question_paper_id`) REFERENCES `question_papers` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `results` ADD CONSTRAINT `fk_results_published_by` FOREIGN KEY (`published_by`) REFERENCES `users` (`id`) ON DELETE SET NULL",
+        
+        // Certificates table
+        "ALTER TABLE `certificates` ADD CONSTRAINT `fk_certificates_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `certificates` ADD CONSTRAINT `fk_certificates_course` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `certificates` ADD CONSTRAINT `fk_certificates_result` FOREIGN KEY (`result_id`) REFERENCES `results` (`id`) ON DELETE SET NULL",
+        "ALTER TABLE `certificates` ADD CONSTRAINT `fk_certificates_issued_by` FOREIGN KEY (`issued_by`) REFERENCES `users` (`id`) ON DELETE SET NULL",
         
         // Users table (added at the end because it references training_centers)
         "ALTER TABLE `users` ADD CONSTRAINT `fk_users_training_center` FOREIGN KEY (`training_center_id`) REFERENCES `training_centers` (`id`) ON DELETE SET NULL"

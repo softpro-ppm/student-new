@@ -130,7 +130,7 @@ try {
                     echo "<div class='success'>✅ Database Connection: Successful</div>";
                     
                     // Check tables
-                    $tables = ['users', 'training_centers', 'students', 'courses', 'batches', 'payments', 'assessments', 'results'];
+                    $tables = ['users', 'training_centers', 'sectors', 'courses', 'batches', 'students', 'fees', 'settings', 'notifications', 'bulk_uploads', 'question_papers', 'assessments', 'results', 'certificates'];
                     foreach ($tables as $table) {
                         try {
                             $stmt = $connection->prepare("DESCRIBE `$table`");
