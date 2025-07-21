@@ -1,5 +1,5 @@
 <?php
-// Enable error reporting for debugging
+// Modern Student Management System - Enhanced Login
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -23,18 +23,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     
+    // Enhanced validation
     if (empty($username) || empty($password)) {
-        $error = 'Please enter both username and password.';
+        $error = 'Please enter both username/email and password.';
     } else {
-        try {
-            $db = getConnection();
-            
-            if (!$db) {
-                $error = 'Database connection failed. Please try again later.';
-            } else {
-                // Try users table first (admin and training partners)
-                $stmt = $db->prepare("SELECT * FROM users WHERE username = ? OR email = ?");
-                $stmt->execute([$username, $username]);
+        // Email format validation
+        if (filter_var($username, FILTER_VALIDATE_EMAIL) === false && !preg_match('/^[0-9]{10}$/', $username)) {
+            if (strlen($username) < 3) {
+                $error = 'Please enter a valid email, phone number, or username.';
+            }
+        }
+        
+        if (!$error) {
+            try {
+                $db = getConnection();
+                
+                if (!$db) {
+                    $error = 'Database connection failed. Please try again later.';
+                } else {
+                    // Try users table first (admin and training partners)
+                    $stmt = $db->prepare("SELECT * FROM users WHERE username = ? OR email = ? OR phone = ?");
+                    $stmt->execute([$username, $username, $username]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 
                 if ($user && password_verify($password, $user['password'])) {
