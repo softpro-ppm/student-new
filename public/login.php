@@ -6,13 +6,15 @@ session_start();
 require_once '../includes/auth.php';
 require_once '../config/database.php';
 
-echo  "Hello, this is a login page!";  die;
+
 
 // If already logged in, redirect to dashboard
 if (isLoggedIn()) {
     header('Location: dashboard.php');
     exit();
 }
+
+echo  "Hello, this is a login page! 1";  die;
 
 $error = '';
 $debug_mode = isset($_GET['debug']) && $_GET['debug'] === '1';
