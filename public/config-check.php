@@ -20,6 +20,38 @@ try {
     $configError = $e->getMessage();
 }
 
+// Handle missing table fix
+if (isset($_GET['fix_missing_tables']) && $_GET['fix_missing_tables'] == '1') {
+    try {
+        $connection = getConnection();
+        
+        // Create question_papers table if it doesn't exist
+        $createQuestionPapers = "CREATE TABLE IF NOT EXISTS `question_papers` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `title` varchar(255) NOT NULL,
+            `course_id` int(11) NOT NULL,
+            `total_questions` int(11) NOT NULL DEFAULT 0,
+            `duration_minutes` int(11) NOT NULL DEFAULT 60,
+            `passing_marks` decimal(5,2) NOT NULL DEFAULT 50.00,
+            `questions` longtext DEFAULT NULL,
+            `instructions` text DEFAULT NULL,
+            `status` enum('draft','published','archived') DEFAULT 'draft',
+            `created_by` int(11) DEFAULT NULL,
+            `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `fk_question_papers_course` (`course_id`),
+            KEY `fk_question_papers_created_by` (`created_by`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+        
+        $connection->exec($createQuestionPapers);
+        $fixMessage = "✅ Successfully created missing question_papers table!";
+        
+    } catch (Exception $e) {
+        $fixMessage = "❌ Error creating missing tables: " . $e->getMessage();
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -83,6 +115,12 @@ try {
         .btn:hover {
             background: #2980b9;
         }
+        .btn-danger {
+            background: #e74c3c;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
         .status-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -104,6 +142,13 @@ try {
     <div class="container">
         <h1>🔧 Student Management System - Configuration Check</h1>
         
+        <?php if (isset($fixMessage)): ?>
+            <div class="check-section <?php echo strpos($fixMessage, '✅') !== false ? 'success' : 'error'; ?>">
+                <h3>🛠️ Fix Results</h3>
+                <div><?php echo $fixMessage; ?></div>
+            </div>
+        <?php endif; ?>
+        
         <?php
         // Check 1: PHP Version
         echo "<div class='check-section'>";
@@ -114,6 +159,16 @@ try {
             echo "<div class='success'>✅ PHP Version: $phpVersion (Compatible)</div>";
         } else {
             echo "<div class='error'>❌ PHP Version: $phpVersion (Requires 7.0+)</div>";
+        }
+        
+        // Check required extensions
+        $requiredExtensions = ['pdo', 'pdo_mysql', 'mbstring', 'json', 'openssl'];
+        foreach ($requiredExtensions as $ext) {
+            if (extension_loaded($ext)) {
+                echo "<div class='success'>✅ PHP Extension '$ext': Loaded</div>";
+            } else {
+                echo "<div class='error'>❌ PHP Extension '$ext': Missing</div>";
+            }
         }
         echo "</div>";
 
@@ -137,7 +192,7 @@ try {
                             $stmt->execute();
                             echo "<div class='success'>✅ Table '$table': Exists</div>";
                         } catch (Exception $e) {
-                            echo "<div class='error'>❌ Table '$table': Missing or Error</div>";
+                            echo "<div class='error'>❌ Table '$table': Missing or Error - " . $e->getMessage() . "</div>";
                         }
                     }
                     
@@ -237,6 +292,24 @@ try {
         }
         echo "</div>";
 
+        // Check 6.5: File Permissions
+        echo "<div class='check-section'>";
+        echo "<h3>📂 File Permissions</h3>";
+        
+        $writeDirectories = ['../uploads', '../assets'];
+        foreach ($writeDirectories as $dir) {
+            if (is_dir($dir)) {
+                if (is_writable($dir)) {
+                    echo "<div class='success'>✅ Directory '$dir': Writable</div>";
+                } else {
+                    echo "<div class='error'>❌ Directory '$dir': Not writable</div>";
+                }
+            } else {
+                echo "<div class='warning'>⚠️ Directory '$dir': Does not exist</div>";
+            }
+        }
+        echo "</div>";
+
         // Check 7: Demo Data
         echo "<div class='check-section'>";
         echo "<h3>👤 Demo Users Status</h3>";
@@ -256,15 +329,20 @@ try {
                         echo "<div class='warning'>⚠️ Admin User: Not found</div>";
                     }
                     
-                    // Check for demo center
-                    $stmt = $connection->prepare("SELECT * FROM training_centers WHERE center_name LIKE ?");
-                    $stmt->execute(['%Demo%']);
-                    $demoCenter = $stmt->fetch();
-                    
-                    if ($demoCenter) {
-                        echo "<div class='success'>✅ Demo Training Center: Available</div>";
-                    } else {
-                        echo "<div class='warning'>⚠️ Demo Training Center: Not found</div>";
+                    // Check for demo center with better error handling
+                    try {
+                        $stmt = $connection->prepare("SELECT * FROM training_centers WHERE name LIKE ?");
+                        $stmt->execute(['%Demo%']);
+                        $demoCenter = $stmt->fetch();
+                        
+                        if ($demoCenter) {
+                            echo "<div class='success'>✅ Demo Training Center: Available</div>";
+                        } else {
+                            echo "<div class='warning'>⚠️ Demo Training Center: Not found</div>";
+                        }
+                    } catch (Exception $e) {
+                        echo "<div class='error'>❌ Demo Training Center Check Error: " . $e->getMessage() . "</div>";
+                        echo "<div class='warning'>💡 Tip: This might be due to incorrect column name or missing table. Check database structure.</div>";
                     }
                     
                     $connection = null;
@@ -283,6 +361,7 @@ try {
             <a href="login.php" class="btn">Direct Login</a>
             <a href="setup_database.php" class="btn">Setup Database</a>
             <a href="setup_dummy_data.php" class="btn">Setup Demo Data</a>
+            <a href="?fix_missing_tables=1" class="btn btn-danger">Fix Missing Tables</a>
         </div>
 
         <div class="check-section">
@@ -305,11 +384,15 @@ Max Execution Time: <?php echo ini_get('max_execution_time'); ?> seconds
         <div class="check-section">
             <h3>💡 Troubleshooting Tips</h3>
             <ul>
+                <li><strong>Missing question_papers table:</strong> Click "Fix Missing Tables" button above or run setup_database.php to create all required tables</li>
+                <li><strong>Column 'center_name' not found:</strong> This has been fixed - the correct column name is 'name' in training_centers table</li>
                 <li>If you see HTTP 500 errors, check the authentication functions in includes/auth.php</li>
                 <li>If URLs with /public/ don't work, check your .htaccess configuration</li>
                 <li>If clean URLs don't work, ensure router.php is included in index.php</li>
                 <li>If database errors occur, run setup_database.php first</li>
                 <li>If login fails, ensure demo data is setup with setup_dummy_data.php</li>
+                <li><strong>Database Connection Issues:</strong> Verify credentials in config/database-simple.php</li>
+                <li><strong>Table Structure Issues:</strong> Run setup_database.php to recreate all tables with correct structure</li>
             </ul>
         </div>
     </div>
