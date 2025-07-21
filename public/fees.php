@@ -8,9 +8,10 @@ if (!isLoggedIn()) {
     exit();
 }
 
-$database = new Database();
-$database = new Database();
-$db = $database->getConnection();
+$db = getConnection();
+if (!$db) {
+    die('Database connection failed');
+}
 
 $user = getCurrentUser();
 $userRole = getCurrentUserRole();
