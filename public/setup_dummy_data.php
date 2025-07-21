@@ -54,24 +54,24 @@ try {
     
     // Sample Students
     $students = [
-        ['ENR001', 'Rajesh Kumar', 'Suresh Kumar', 'rajesh@example.com', '9999999999', '123456789012', '1995-05-15', 'male', 'Graduation', 'single', 1, 1, 1],
-        ['ENR002', 'Priya Sharma', 'Ram Sharma', 'priya@example.com', '9999999998', '123456789013', '1997-08-22', 'female', 'Intermediate', 'single', 2, 2, 1],
-        ['ENR003', 'Amit Singh', 'Ravi Singh', 'amit@example.com', '9999999997', '123456789014', '1994-12-10', 'male', 'B.Tech', 'married', 3, 3, 2],
-        ['ENR004', 'Sunita Patel', 'Mohan Patel', 'sunita@example.com', '9999999996', '123456789015', '1996-03-18', 'female', 'Diploma', 'single', 4, 4, 2],
-        ['ENR005', 'Vikram Reddy', 'Krishna Reddy', 'vikram@example.com', '9999999995', '123456789016', '1993-07-25', 'male', 'Post Graduation', 'married', 5, 5, 3],
-        ['ENR006', 'Kavita Gupta', 'Ramesh Gupta', 'kavita@example.com', '9999999994', '123456789017', '1998-11-12', 'female', 'SSC', 'single', 7, 6, 4],
-        ['ENR007', 'Arjun Yadav', 'Sanjay Yadav', 'arjun@example.com', '9999999993', '123456789018', '1995-09-30', 'male', 'Graduation', 'single', 9, 7, 5],
-        ['ENR008', 'Deepika Joshi', 'Mahesh Joshi', 'deepika@example.com', '9999999992', '123456789019', '1997-01-08', 'female', 'Intermediate', 'single', 11, 8, 1],
-        ['ENR009', 'Rohit Malhotra', 'Anil Malhotra', 'rohit@example.com', '9999999991', '123456789020', '1994-04-14', 'male', 'B.Tech', 'married', 13, 9, 3],
-        ['ENR010', 'Neha Agarwal', 'Sunil Agarwal', 'neha@example.com', '9999999990', '123456789021', '1996-06-20', 'female', 'Diploma', 'single', 14, 10, 4],
-        ['ENR011', 'Manish Verma', 'Rakesh Verma', 'manish@example.com', '9999999989', '123456789022', '1995-02-28', 'male', 'Graduation', 'single', 1, 1, 1],
-        ['ENR012', 'Anjali Tiwari', 'Dinesh Tiwari', 'anjali@example.com', '9999999988', '123456789023', '1998-10-15', 'female', 'SSC', 'single', 2, 2, 2],
-        ['ENR013', 'Saurabh Mishra', 'Hari Mishra', 'saurabh@example.com', '9999999987', '123456789024', '1993-12-03', 'male', 'Post Graduation', 'married', 4, 4, 2],
-        ['ENR014', 'Pooja Saxena', 'Ajay Saxena', 'pooja@example.com', '9999999986', '123456789025', '1997-05-11', 'female', 'Intermediate', 'single', 5, 5, 3],
-        ['ENR015', 'Ravi Choudhary', 'Mohan Choudhary', 'ravi@example.com', '9999999985', '123456789026', '1996-08-19', 'male', 'Graduation', 'single', 7, 6, 4]
+        ['ENR001', 'Rajesh Kumar', 'Suresh Kumar', 'rajesh@example.com', '9999999999', '123456789012', '1995-05-15', 'Male', 'Graduation', 'Single', 1, 1, 1],
+        ['ENR002', 'Priya Sharma', 'Ram Sharma', 'priya@example.com', '9999999998', '123456789013', '1997-08-22', 'Female', 'Inter', 'Single', 2, 2, 1],
+        ['ENR003', 'Amit Singh', 'Ravi Singh', 'amit@example.com', '9999999997', '123456789014', '1994-12-10', 'Male', 'B.Tech', 'Married', 3, 3, 2],
+        ['ENR004', 'Sunita Patel', 'Mohan Patel', 'sunita@example.com', '9999999996', '123456789015', '1996-03-18', 'Female', 'Diploma', 'Single', 4, 4, 2],
+        ['ENR005', 'Vikram Reddy', 'Krishna Reddy', 'vikram@example.com', '9999999995', '123456789016', '1993-07-25', 'Male', 'PG', 'Married', 5, 5, 3],
+        ['ENR006', 'Kavita Gupta', 'Ramesh Gupta', 'kavita@example.com', '9999999994', '123456789017', '1998-11-12', 'Female', 'SSC', 'Single', 7, 6, 4],
+        ['ENR007', 'Arjun Yadav', 'Sanjay Yadav', 'arjun@example.com', '9999999993', '123456789018', '1995-09-30', 'Male', 'Graduation', 'Single', 9, 7, 5],
+        ['ENR008', 'Deepika Joshi', 'Mahesh Joshi', 'deepika@example.com', '9999999992', '123456789019', '1997-01-08', 'Female', 'Inter', 'Single', 11, 8, 1],
+        ['ENR009', 'Rohit Malhotra', 'Anil Malhotra', 'rohit@example.com', '9999999991', '123456789020', '1994-04-14', 'Male', 'B.Tech', 'Married', 13, 9, 3],
+        ['ENR010', 'Neha Agarwal', 'Sunil Agarwal', 'neha@example.com', '9999999990', '123456789021', '1996-06-20', 'Female', 'Diploma', 'Single', 14, 10, 4],
+        ['ENR011', 'Manish Verma', 'Rakesh Verma', 'manish@example.com', '9999999989', '123456789022', '1995-02-28', 'Male', 'Graduation', 'Single', 1, 1, 1],
+        ['ENR012', 'Anjali Tiwari', 'Dinesh Tiwari', 'anjali@example.com', '9999999988', '123456789023', '1998-10-15', 'Female', 'SSC', 'Single', 2, 2, 2],
+        ['ENR013', 'Saurabh Mishra', 'Hari Mishra', 'saurabh@example.com', '9999999987', '123456789024', '1993-12-03', 'Male', 'PG', 'Married', 4, 4, 2],
+        ['ENR014', 'Pooja Saxena', 'Ajay Saxena', 'pooja@example.com', '9999999986', '123456789025', '1997-05-11', 'Female', 'Inter', 'Single', 5, 5, 3],
+        ['ENR015', 'Ravi Choudhary', 'Mohan Choudhary', 'ravi@example.com', '9999999985', '123456789026', '1996-08-19', 'Male', 'Graduation', 'Single', 7, 6, 4]
     ];
     
-    $stmt = $db->prepare("INSERT INTO students (enrollment_number, name, father_name, email, phone, aadhaar, dob, gender, education, marital_status, course_id, batch_id, training_center_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $db->prepare("INSERT INTO students (enrollment_no, name, father_name, email, phone, aadhaar, dob, gender, education, marital_status, course_id, batch_id, training_center_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     foreach ($students as $student) {
         $stmt->execute($student);
     }
@@ -158,6 +158,12 @@ try {
     echo "<p>✓ Created " . count($assessments) . " assessments</p>";
     
     echo "<h2>Creating training partner users...</h2>";
+    
+    // First create admin user
+    $stmt = $db->prepare("INSERT INTO users (username, email, password, role, name, phone) VALUES (?, ?, ?, ?, ?, ?)");
+    $adminPassword = password_hash('admin123', PASSWORD_DEFAULT);
+    $stmt->execute(['admin', 'admin@softpromis.com', $adminPassword, 'admin', 'System Administrator', '1234567890']);
+    echo "<p>✓ Created admin user (admin/admin123)</p>";
     
     // Create training partner users
     $stmt = $db->prepare("INSERT INTO users (username, email, password, role, name, phone, training_center_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
