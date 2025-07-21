@@ -1,10 +1,12 @@
 <?php
 
-//echo  "Hello, this is a login page!";  die;
+
 
 session_start();
 require_once '../includes/auth.php';
 require_once '../config/database.php';
+
+echo  "Hello, this is a login page!";  die;
 
 // If already logged in, redirect to dashboard
 if (isLoggedIn()) {
