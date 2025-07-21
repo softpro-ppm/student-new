@@ -1,8 +1,7 @@
 <?php
-require_once '../config/database.php';
+require_once '../includes/auth.php';
 
-$database = new Database();
-$db = $database->getConnection();
+$db = getConnection();
 
 $token = $_GET['token'] ?? '';
 

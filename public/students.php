@@ -7,7 +7,6 @@ error_reporting(E_ALL);
 session_start();
 
 // Include required files
-require_once '../config/database.php';
 require_once '../includes/auth.php';
 
 // Check if user is logged in

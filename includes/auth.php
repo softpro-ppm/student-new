@@ -267,8 +267,7 @@ class Auth {
 
 // Create password resets table
 function createPasswordResetsTable() {
-    $database = new Database();
-    $db = $database->getConnection();
+    $db = getConnection();
     
     $createPasswordResets = "CREATE TABLE IF NOT EXISTS password_resets (
         user_id INT PRIMARY KEY,

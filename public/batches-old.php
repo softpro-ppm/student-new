@@ -1,12 +1,10 @@
 <?php
 require_once '../includes/auth.php';
-require_once '../config/database.php';
 
 $auth = new Auth();
 $auth->requireRole(['admin', 'training_partner']);
 
-$database = new Database();
-$db = $database->getConnection();
+$db = getConnection();
 
 $pageTitle = 'Batch Management';
 $currentUser = $auth->getCurrentUser();

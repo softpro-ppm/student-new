@@ -1,12 +1,10 @@
 <?php
 require_once '../includes/auth.php';
-require_once '../config/database.php';
 
 $auth = new Auth();
 $auth->requireLogin();
 
-$database = new Database();
-$db = $database->getConnection();
+$db = getConnection();
 
 $currentUser = $auth->getCurrentUser();
 $assessmentId = intval($_GET['id'] ?? 0);
