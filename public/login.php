@@ -1,4 +1,7 @@
 <?php
+
+echo  "Hello, this is a login page!";  die;
+
 session_start();
 require_once '../includes/auth.php';
 require_once '../config/database.php';
