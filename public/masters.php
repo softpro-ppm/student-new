@@ -13,8 +13,7 @@ $user = getCurrentUser();
 $userRole = getCurrentUserRole();
 
 // Initialize database connection
-$database = new Database();
-$db = $database->getConnection();
+$db = getConnection();
 
 if (!$db) {
     die('Database connection failed');

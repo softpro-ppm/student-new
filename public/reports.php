@@ -1,14 +1,16 @@
 <?php
+session_start();
 require_once '../includes/auth.php';
 require_once '../config/database.php';
 
-$auth = new Auth();
-$auth->requireLogin();
+// Check if user is logged in
+if (!isLoggedIn()) {
+    header('Location: login.php');
+    exit();
+}
 
-$database = new Database();
-$db = $database->getConnection();
-
-$currentUser = $auth->getCurrentUser();
+$db = getConnection();
+$currentUser = getCurrentUser();
 $successMessage = '';
 $errorMessage = '';
 

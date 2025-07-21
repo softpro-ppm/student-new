@@ -3,6 +3,7 @@ require_once '../includes/auth.php';
 require_once '../config/database.php';
 
 $database = new Database();
+$database = new Database();
 $db = $database->getConnection();
 
 $token = $_GET['token'] ?? '';

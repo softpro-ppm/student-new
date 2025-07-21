@@ -417,4 +417,10 @@ function createTables() {
 
 // Initialize database
 createTables();
+
+// Standalone helper function for backward compatibility
+function getConnection() {
+    $database = new Database();
+    return $database->getConnection();
+}
 ?>

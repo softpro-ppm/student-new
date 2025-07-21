@@ -9,6 +9,7 @@ if (!isLoggedIn()) {
 }
 
 $database = new Database();
+$database = new Database();
 $db = $database->getConnection();
 
 $user = getCurrentUser();
