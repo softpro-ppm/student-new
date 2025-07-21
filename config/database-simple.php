@@ -1,5 +1,7 @@
 <?php
 // Simplified Database Configuration for Student Management System
+
+// Get database connection using PDO
 function getConnection() {
     $host = 'localhost';
     $dbname = 'u820431346_student_new';
@@ -22,16 +24,13 @@ function getConnection() {
     }
 }
 
-// Legacy Database class for backward compatibility
-class Database {
-    private $host = 'localhost';
-    private $db_name = 'u820431346_student_new';
-    private $username = 'u820431346_student_new';
-    private $password = 'Softpro@123';
-    private $conn;
-
-    public function getConnection() {
-        return getConnection();
+// Simple Database class wrapper for backward compatibility
+// Only declare if not already declared to avoid conflicts
+if (!class_exists('Database')) {
+    class Database {
+        public function getConnection() {
+            return getConnection();
+        }
     }
 }
 
