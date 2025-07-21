@@ -3,10 +3,10 @@ session_start();
 require_once '../includes/auth.php';
 require_once '../config/database.php';
 
-// if (!isLoggedIn()) {
-//     header('Location: login.php');
-//     exit();
-// }
+if (!isLoggedIn()) {
+    header('Location: login.php');
+    exit();
+}
 
 $database = new Database();
 $db = $database->getConnection();
