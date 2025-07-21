@@ -1,9 +1,8 @@
 <?php
 // Dummy Data Setup for Testing
-require_once '../config/database.php';
+require_once '../config/database-simple.php';
 
-$database = new Database();
-$db = $database->getConnection();
+$db = getConnection();
 
 if (!$db) {
     die('Database connection failed!');

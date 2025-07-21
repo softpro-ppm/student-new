@@ -14,8 +14,8 @@ error_reporting(E_ALL);
 
 // Include required files
 try {
-    require_once 'config/database.php';
-    require_once 'includes/auth.php';
+    require_once '../config/database-simple.php';
+    require_once '../includes/auth.php';
 } catch (Exception $e) {
     $configError = $e->getMessage();
 }
@@ -185,18 +185,19 @@ try {
         echo "<h3>📁 File Structure</h3>";
         
         $requiredFiles = [
-            'config/database.php' => 'Database Configuration',
-            'includes/auth.php' => 'Authentication System',
-            'public/login.php' => 'Login Page',
-            'public/dashboard.php' => 'Dashboard',
-            'public/students.php' => 'Students Management',
-            'public/training-centers.php' => 'Training Centers',
-            'public/masters.php' => 'Masters Data',
-            'public/fees.php' => 'Fees Management',
-            'public/batches.php' => 'Batch Management',
-            'public/assessments.php' => 'Assessments',
-            '.htaccess' => 'Apache URL Rewriting',
-            'router.php' => 'PHP Router'
+            '../config/database.php' => 'Database Configuration',
+            '../config/database-simple.php' => 'Simple Database Configuration',
+            '../includes/auth.php' => 'Authentication System',
+            'login.php' => 'Login Page',
+            'dashboard.php' => 'Dashboard',
+            'students.php' => 'Students Management',
+            'training-centers.php' => 'Training Centers',
+            'masters.php' => 'Masters Data',
+            'fees.php' => 'Fees Management',
+            'batches.php' => 'Batch Management',
+            'assessments.php' => 'Assessments',
+            '../.htaccess' => 'Apache URL Rewriting',
+            '../router.php' => 'PHP Router'
         ];
         
         foreach ($requiredFiles as $file => $description) {
@@ -277,11 +278,11 @@ try {
 
         <div class="check-section">
             <h3>🚀 Quick Actions</h3>
-            <a href="/login" class="btn">Go to Login</a>
-            <a href="/dashboard" class="btn">Go to Dashboard</a>
-            <a href="public/login.php" class="btn">Direct Login (with /public/)</a>
-            <a href="public/setup_database.php" class="btn">Setup Database</a>
-            <a href="public/setup_dummy_data.php" class="btn">Setup Demo Data</a>
+            <a href="../login" class="btn">Go to Login</a>
+            <a href="../dashboard" class="btn">Go to Dashboard</a>
+            <a href="login.php" class="btn">Direct Login</a>
+            <a href="setup_database.php" class="btn">Setup Database</a>
+            <a href="setup_dummy_data.php" class="btn">Setup Demo Data</a>
         </div>
 
         <div class="check-section">

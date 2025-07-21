@@ -1,311 +1,346 @@
 <?php
-// Complete Database Schema and Setup
-require_once '../config/database.php';
-
-$database = new Database();
-$db = $database->getConnection();
-
-if (!$db) {
-    die('Database connection failed!');
-}
-
-echo "<h1>Student Management System - Complete Database Setup</h1>";
+// Fixed Database Schema and Setup for Student Management System
+require_once '../config/database-simple.php';
 
 try {
-    // Drop and recreate all tables with proper structure
+    $db = getConnection();
+    if (!$db) {
+        throw new Exception('Database connection failed!');
+    }
+} catch (Exception $e) {
+    die('Database connection failed: ' . $e->getMessage());
+}
+
+echo "<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Setup - Student Management System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .container { max-width: 800px; margin: 0 auto; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+        .btn { display: inline-block; padding: 10px 20px; margin: 10px 5px; text-decoration: none; border-radius: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+    </style>
+</head>
+<body>
+<div class='container'>";
+
+echo "<h1>Student Management System - Database Setup</h1>";
+
+try {
+    // Disable foreign key checks temporarily
+    $db->exec("SET FOREIGN_KEY_CHECKS = 0");
+    echo "<p class='warning'>⚠ Disabled foreign key checks temporarily</p>";
+    
+    // Drop tables in reverse dependency order
     $dropTables = [
-        'assessment_results', 'assessments', 'question_papers', 'certificates', 
-        'notifications', 'results', 'fees', 'student_batches', 'students', 
+        'bulk_uploads', 'assessment_results', 'assessments', 'question_papers', 
+        'certificates', 'notifications', 'results', 'fees', 'students', 
         'batches', 'courses', 'sectors', 'training_centers', 'users', 'settings'
     ];
     
     echo "<h2>Dropping existing tables...</h2>";
     foreach ($dropTables as $table) {
         try {
-            $db->exec("DROP TABLE IF EXISTS $table");
-            echo "<p>✓ Dropped table: $table</p>";
+            $db->exec("DROP TABLE IF EXISTS `$table`");
+            echo "<p class='success'>✓ Dropped table: $table</p>";
         } catch (PDOException $e) {
-            echo "<p>⚠ Could not drop $table: " . $e->getMessage() . "</p>";
+            echo "<p class='warning'>⚠ Could not drop $table: " . $e->getMessage() . "</p>";
         }
     }
     
     echo "<h2>Creating new tables...</h2>";
     
-    // Users table
-    $createUsers = "CREATE TABLE users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(100) UNIQUE NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        role ENUM('admin', 'training_partner', 'student') NOT NULL,
-        name VARCHAR(255) NOT NULL,
-        phone VARCHAR(20),
-        training_center_id INT,
-        avatar VARCHAR(255),
-        status ENUM('active', 'inactive') DEFAULT 'active',
-        created_by INT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )";
+    // 1. Users table (independent)
+    $createUsers = "CREATE TABLE `users` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `username` varchar(100) NOT NULL,
+        `email` varchar(255) NOT NULL,
+        `password` varchar(255) NOT NULL,
+        `role` enum('admin','training_partner','student') NOT NULL,
+        `name` varchar(255) NOT NULL,
+        `full_name` varchar(255) DEFAULT NULL,
+        `phone` varchar(20) DEFAULT NULL,
+        `training_center_id` int(11) DEFAULT NULL,
+        `avatar` varchar(255) DEFAULT NULL,
+        `status` enum('active','inactive','suspended') DEFAULT 'active',
+        `created_by` int(11) DEFAULT NULL,
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `username` (`username`),
+        UNIQUE KEY `email` (`email`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $db->exec($createUsers);
-    echo "<p>✓ Created users table</p>";
+    echo "<p class='success'>✓ Created users table</p>";
     
-    // Training Centers table
-    $createTrainingCenters = "CREATE TABLE training_centers (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        tc_id VARCHAR(20) UNIQUE NOT NULL,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        phone VARCHAR(20),
-        address TEXT,
-        password VARCHAR(255) NOT NULL,
-        status ENUM('active', 'inactive') DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )";
+    // 2. Training Centers table (independent)
+    $createTrainingCenters = "CREATE TABLE `training_centers` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `tc_id` varchar(20) NOT NULL,
+        `name` varchar(255) NOT NULL,
+        `contact_person` varchar(255) DEFAULT NULL,
+        `email` varchar(255) NOT NULL,
+        `phone` varchar(20) DEFAULT NULL,
+        `address` text DEFAULT NULL,
+        `city` varchar(100) DEFAULT NULL,
+        `state` varchar(100) DEFAULT NULL,
+        `pincode` varchar(10) DEFAULT NULL,
+        `password` varchar(255) NOT NULL,
+        `status` enum('active','inactive','suspended','deleted') DEFAULT 'active',
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `tc_id` (`tc_id`),
+        UNIQUE KEY `email` (`email`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $db->exec($createTrainingCenters);
-    echo "<p>✓ Created training_centers table</p>";
+    echo "<p class='success'>✓ Created training_centers table</p>";
     
-    // Sectors table
-    $createSectors = "CREATE TABLE sectors (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        code VARCHAR(50) UNIQUE NOT NULL,
-        description TEXT,
-        status ENUM('active', 'inactive') DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )";
+    // 3. Sectors table (independent)
+    $createSectors = "CREATE TABLE `sectors` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `code` varchar(50) NOT NULL,
+        `description` text DEFAULT NULL,
+        `status` enum('active','inactive') DEFAULT 'active',
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `code` (`code`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $db->exec($createSectors);
-    echo "<p>✓ Created sectors table</p>";
+    echo "<p class='success'>✓ Created sectors table</p>";
     
-    // Courses table
-    $createCourses = "CREATE TABLE courses (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        code VARCHAR(50) UNIQUE NOT NULL,
-        sector_id INT,
-        duration_months INT NOT NULL,
-        fee_amount DECIMAL(10,2) NOT NULL,
-        description TEXT,
-        status ENUM('active', 'inactive') DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (sector_id) REFERENCES sectors(id) ON DELETE SET NULL
-    )";
+    // 4. Courses table (depends on sectors)
+    $createCourses = "CREATE TABLE `courses` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `code` varchar(50) NOT NULL,
+        `sector_id` int(11) DEFAULT NULL,
+        `duration_months` int(11) NOT NULL,
+        `fee_amount` decimal(10,2) NOT NULL,
+        `description` text DEFAULT NULL,
+        `training_center_id` int(11) DEFAULT NULL,
+        `status` enum('active','inactive') DEFAULT 'active',
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `code` (`code`),
+        KEY `sector_id` (`sector_id`),
+        KEY `training_center_id` (`training_center_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $db->exec($createCourses);
-    echo "<p>✓ Created courses table</p>";
+    echo "<p class='success'>✓ Created courses table</p>";
     
-    // Batches table
-    $createBatches = "CREATE TABLE batches (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        course_id INT,
-        training_center_id INT,
-        start_date DATE,
-        end_date DATE,
-        start_time TIME,
-        end_time TIME,
-        status ENUM('planned', 'ongoing', 'completed', 'cancelled') DEFAULT 'planned',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
-        FOREIGN KEY (training_center_id) REFERENCES training_centers(id) ON DELETE CASCADE
-    )";
+    // 5. Batches table (depends on courses and training_centers)
+    $createBatches = "CREATE TABLE `batches` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `name` varchar(255) NOT NULL,
+        `course_id` int(11) DEFAULT NULL,
+        `training_center_id` int(11) DEFAULT NULL,
+        `start_date` date DEFAULT NULL,
+        `end_date` date DEFAULT NULL,
+        `start_time` time DEFAULT NULL,
+        `end_time` time DEFAULT NULL,
+        `status` enum('upcoming','ongoing','completed','cancelled','deleted') DEFAULT 'upcoming',
+        `max_students` int(11) DEFAULT 30,
+        `current_students` int(11) DEFAULT 0,
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `course_id` (`course_id`),
+        KEY `training_center_id` (`training_center_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $db->exec($createBatches);
-    echo "<p>✓ Created batches table</p>";
+    echo "<p class='success'>✓ Created batches table</p>";
     
-    // Students table
-    $createStudents = "CREATE TABLE students (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        enrollment_number VARCHAR(50) UNIQUE NOT NULL,
-        name VARCHAR(255) NOT NULL,
-        father_name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE,
-        phone VARCHAR(10) NOT NULL,
-        aadhaar VARCHAR(12) UNIQUE NOT NULL,
-        dob DATE,
-        gender ENUM('male', 'female', 'other') NOT NULL,
-        education ENUM('Below SSC', 'SSC', 'Intermediate', 'Graduation', 'Post Graduation', 'B.Tech', 'Diploma') NOT NULL,
-        marital_status ENUM('single', 'married', 'divorced', 'widowed') DEFAULT 'single',
-        course_id INT,
-        batch_id INT,
-        training_center_id INT,
-        photo VARCHAR(255),
-        aadhaar_doc VARCHAR(255),
-        education_doc VARCHAR(255),
-        status ENUM('active', 'inactive', 'completed', 'dropped') DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL,
-        FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE SET NULL,
-        FOREIGN KEY (training_center_id) REFERENCES training_centers(id) ON DELETE SET NULL
-    )";
+    // 6. Students table (depends on courses, batches, training_centers)
+    $createStudents = "CREATE TABLE `students` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `enrollment_no` varchar(50) NOT NULL,
+        `name` varchar(255) NOT NULL,
+        `father_name` varchar(255) NOT NULL,
+        `email` varchar(255) DEFAULT NULL,
+        `phone` varchar(10) NOT NULL,
+        `aadhaar` varchar(12) NOT NULL,
+        `dob` date DEFAULT NULL,
+        `gender` enum('Male','Female','Other') NOT NULL,
+        `education` enum('Below SSC','SSC','Inter','Graduation','PG','B.Tech','Diploma') NOT NULL,
+        `marital_status` enum('Single','Married','Divorced','Widowed') DEFAULT 'Single',
+        `course_id` int(11) DEFAULT NULL,
+        `batch_id` int(11) DEFAULT NULL,
+        `training_center_id` int(11) DEFAULT NULL,
+        `address` text DEFAULT NULL,
+        `photo` varchar(255) DEFAULT NULL,
+        `aadhaar_doc` varchar(255) DEFAULT NULL,
+        `education_doc` varchar(255) DEFAULT NULL,
+        `password` varchar(255) DEFAULT NULL,
+        `status` enum('active','inactive','completed','dropped','deleted') DEFAULT 'active',
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `enrollment_no` (`enrollment_no`),
+        UNIQUE KEY `aadhaar` (`aadhaar`),
+        UNIQUE KEY `email` (`email`),
+        KEY `course_id` (`course_id`),
+        KEY `batch_id` (`batch_id`),
+        KEY `training_center_id` (`training_center_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $db->exec($createStudents);
-    echo "<p>✓ Created students table</p>";
+    echo "<p class='success'>✓ Created students table</p>";
     
-    // Fees table
-    $createFees = "CREATE TABLE fees (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        student_id INT NOT NULL,
-        amount DECIMAL(10,2) NOT NULL,
-        fee_type ENUM('registration', 'course', 'exam', 'emi', 'other') DEFAULT 'course',
-        status ENUM('pending', 'paid', 'approved', 'rejected') DEFAULT 'pending',
-        due_date DATE,
-        paid_date DATE,
-        approved_by INT,
-        approved_date DATE,
-        receipt_number VARCHAR(50),
-        notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-        FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
-    )";
+    // 7. Fees table (depends on students)
+    $createFees = "CREATE TABLE `fees` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `student_id` int(11) NOT NULL,
+        `amount` decimal(10,2) NOT NULL,
+        `fee_type` enum('registration','course','exam','emi','other') DEFAULT 'course',
+        `status` enum('pending','paid','approved','rejected') DEFAULT 'pending',
+        `due_date` date DEFAULT NULL,
+        `paid_date` date DEFAULT NULL,
+        `approved_by` int(11) DEFAULT NULL,
+        `approved_date` date DEFAULT NULL,
+        `receipt_number` varchar(50) DEFAULT NULL,
+        `payment_method` enum('cash','online','cheque','dd') DEFAULT 'cash',
+        `transaction_id` varchar(100) DEFAULT NULL,
+        `notes` text DEFAULT NULL,
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `student_id` (`student_id`),
+        KEY `approved_by` (`approved_by`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $db->exec($createFees);
-    echo "<p>✓ Created fees table</p>";
+    echo "<p class='success'>✓ Created fees table</p>";
     
-    // Question Papers table
-    $createQuestionPapers = "CREATE TABLE question_papers (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        course_id INT,
-        total_questions INT DEFAULT 0,
-        duration_minutes INT DEFAULT 60,
-        passing_marks INT DEFAULT 70,
-        questions JSON,
-        status ENUM('active', 'inactive') DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
-    )";
-    $db->exec($createQuestionPapers);
-    echo "<p>✓ Created question_papers table</p>";
-    
-    // Assessments table
-    $createAssessments = "CREATE TABLE assessments (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        batch_id INT NOT NULL,
-        question_paper_id INT NOT NULL,
-        assessment_date DATE,
-        instructions TEXT,
-        status ENUM('scheduled', 'ongoing', 'completed') DEFAULT 'scheduled',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE CASCADE,
-        FOREIGN KEY (question_paper_id) REFERENCES question_papers(id) ON DELETE CASCADE
-    )";
-    $db->exec($createAssessments);
-    echo "<p>✓ Created assessments table</p>";
-    
-    // Assessment Results table
-    $createAssessmentResults = "CREATE TABLE assessment_results (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        assessment_id INT NOT NULL,
-        student_id INT NOT NULL,
-        answers JSON,
-        score INT DEFAULT 0,
-        total_marks INT DEFAULT 0,
-        percentage DECIMAL(5,2) DEFAULT 0,
-        result ENUM('pass', 'fail') DEFAULT 'fail',
-        attempt_number INT DEFAULT 1,
-        started_at TIMESTAMP NULL,
-        completed_at TIMESTAMP NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE,
-        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
-    )";
-    $db->exec($createAssessmentResults);
-    echo "<p>✓ Created assessment_results table</p>";
-    
-    // Results table
-    $createResults = "CREATE TABLE results (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        student_id INT NOT NULL,
-        assessment_result_id INT,
-        final_score DECIMAL(5,2) NOT NULL,
-        grade ENUM('A+', 'A', 'B+', 'B', 'C', 'F') NOT NULL,
-        result ENUM('pass', 'fail') NOT NULL,
-        remarks TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-        FOREIGN KEY (assessment_result_id) REFERENCES assessment_results(id) ON DELETE SET NULL
-    )";
-    $db->exec($createResults);
-    echo "<p>✓ Created results table</p>";
-    
-    // Certificates table
-    $createCertificates = "CREATE TABLE certificates (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        student_id INT NOT NULL,
-        result_id INT,
-        certificate_number VARCHAR(50) UNIQUE NOT NULL,
-        certificate_path VARCHAR(255),
-        qr_code_path VARCHAR(255),
-        issued_date DATE NOT NULL,
-        status ENUM('generated', 'issued', 'revoked') DEFAULT 'generated',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-        FOREIGN KEY (result_id) REFERENCES results(id) ON DELETE SET NULL
-    )";
-    $db->exec($createCertificates);
-    echo "<p>✓ Created certificates table</p>";
-    
-    // Settings table
-    $createSettings = "CREATE TABLE settings (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        setting_key VARCHAR(100) UNIQUE NOT NULL,
-        setting_value TEXT,
-        setting_type ENUM('text', 'number', 'boolean', 'file', 'json') DEFAULT 'text',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )";
+    // 8. Settings table (independent)
+    $createSettings = "CREATE TABLE `settings` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `setting_key` varchar(100) NOT NULL,
+        `setting_value` text DEFAULT NULL,
+        `setting_type` enum('text','number','boolean','file','json') DEFAULT 'text',
+        `description` varchar(255) DEFAULT NULL,
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `setting_key` (`setting_key`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $db->exec($createSettings);
-    echo "<p>✓ Created settings table</p>";
+    echo "<p class='success'>✓ Created settings table</p>";
     
-    // Notifications table
-    $createNotifications = "CREATE TABLE notifications (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT,
-        title VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        type ENUM('info', 'success', 'warning', 'error') DEFAULT 'info',
-        is_read BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )";
+    // 9. Notifications table (depends on users)
+    $createNotifications = "CREATE TABLE `notifications` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `user_id` int(11) DEFAULT NULL,
+        `title` varchar(255) NOT NULL,
+        `message` text NOT NULL,
+        `type` enum('info','success','warning','error') DEFAULT 'info',
+        `is_read` tinyint(1) DEFAULT 0,
+        `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `user_id` (`user_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $db->exec($createNotifications);
-    echo "<p>✓ Created notifications table</p>";
+    echo "<p class='success'>✓ Created notifications table</p>";
+    
+    // 10. Bulk Uploads table (depends on users)
+    $createBulkUploads = "CREATE TABLE `bulk_uploads` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
+        `user_id` int(11) NOT NULL,
+        `filename` varchar(255) NOT NULL,
+        `total_records` int(11) DEFAULT 0,
+        `successful_imports` int(11) DEFAULT 0,
+        `failed_imports` int(11) DEFAULT 0,
+        `course_id` int(11) DEFAULT NULL,
+        `batch_id` int(11) DEFAULT NULL,
+        `training_center_id` int(11) DEFAULT NULL,
+        `upload_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `status` enum('processing','completed','failed') DEFAULT 'processing',
+        `error_log` text DEFAULT NULL,
+        PRIMARY KEY (`id`),
+        KEY `user_id` (`user_id`),
+        KEY `course_id` (`course_id`),
+        KEY `batch_id` (`batch_id`),
+        KEY `training_center_id` (`training_center_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    $db->exec($createBulkUploads);
+    echo "<p class='success'>✓ Created bulk_uploads table</p>";
     
     echo "<h2>Adding foreign key constraints...</h2>";
     
-    // Add foreign key for users.training_center_id
-    $db->exec("ALTER TABLE users ADD FOREIGN KEY (training_center_id) REFERENCES training_centers(id) ON DELETE SET NULL");
-    echo "<p>✓ Added foreign key for users.training_center_id</p>";
+    // Re-enable foreign key checks
+    $db->exec("SET FOREIGN_KEY_CHECKS = 1");
+    
+    // Add foreign key constraints
+    $foreignKeys = [
+        // Courses table
+        "ALTER TABLE `courses` ADD CONSTRAINT `fk_courses_sector` FOREIGN KEY (`sector_id`) REFERENCES `sectors` (`id`) ON DELETE SET NULL",
+        "ALTER TABLE `courses` ADD CONSTRAINT `fk_courses_training_center` FOREIGN KEY (`training_center_id`) REFERENCES `training_centers` (`id`) ON DELETE SET NULL",
+        
+        // Batches table
+        "ALTER TABLE `batches` ADD CONSTRAINT `fk_batches_course` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE SET NULL",
+        "ALTER TABLE `batches` ADD CONSTRAINT `fk_batches_training_center` FOREIGN KEY (`training_center_id`) REFERENCES `training_centers` (`id`) ON DELETE SET NULL",
+        
+        // Students table
+        "ALTER TABLE `students` ADD CONSTRAINT `fk_students_course` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE SET NULL",
+        "ALTER TABLE `students` ADD CONSTRAINT `fk_students_batch` FOREIGN KEY (`batch_id`) REFERENCES `batches` (`id`) ON DELETE SET NULL",
+        "ALTER TABLE `students` ADD CONSTRAINT `fk_students_training_center` FOREIGN KEY (`training_center_id`) REFERENCES `training_centers` (`id`) ON DELETE SET NULL",
+        
+        // Fees table
+        "ALTER TABLE `fees` ADD CONSTRAINT `fk_fees_student` FOREIGN KEY (`student_id`) REFERENCES `students` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `fees` ADD CONSTRAINT `fk_fees_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL",
+        
+        // Notifications table
+        "ALTER TABLE `notifications` ADD CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE",
+        
+        // Bulk Uploads table
+        "ALTER TABLE `bulk_uploads` ADD CONSTRAINT `fk_bulk_uploads_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE",
+        "ALTER TABLE `bulk_uploads` ADD CONSTRAINT `fk_bulk_uploads_course` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE SET NULL",
+        "ALTER TABLE `bulk_uploads` ADD CONSTRAINT `fk_bulk_uploads_batch` FOREIGN KEY (`batch_id`) REFERENCES `batches` (`id`) ON DELETE SET NULL",
+        "ALTER TABLE `bulk_uploads` ADD CONSTRAINT `fk_bulk_uploads_training_center` FOREIGN KEY (`training_center_id`) REFERENCES `training_centers` (`id`) ON DELETE SET NULL",
+        
+        // Users table (added at the end because it references training_centers)
+        "ALTER TABLE `users` ADD CONSTRAINT `fk_users_training_center` FOREIGN KEY (`training_center_id`) REFERENCES `training_centers` (`id`) ON DELETE SET NULL"
+    ];
+    
+    foreach ($foreignKeys as $fk) {
+        try {
+            $db->exec($fk);
+            echo "<p class='success'>✓ Added foreign key constraint</p>";
+        } catch (PDOException $e) {
+            echo "<p class='warning'>⚠ Skipped foreign key (might already exist): " . $e->getMessage() . "</p>";
+        }
+    }
     
     echo "<h2>Inserting default data...</h2>";
     
     // Insert admin user
     $adminPassword = password_hash('admin123', PASSWORD_DEFAULT);
-    $stmt = $db->prepare("INSERT INTO users (username, email, password, role, name, phone) VALUES (?, ?, ?, ?, ?, ?)");
-    $stmt->execute(['admin', 'admin@example.com', $adminPassword, 'admin', 'System Administrator', '9999999999']);
-    echo "<p>✓ Created admin user (admin/admin123)</p>";
+    $stmt = $db->prepare("INSERT INTO `users` (`username`, `email`, `password`, `role`, `name`, `full_name`, `phone`, `status`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute(['admin', 'admin@sms.com', $adminPassword, 'admin', 'System Administrator', 'System Administrator', '9999999999', 'active']);
+    echo "<p class='success'>✓ Created admin user (username: admin, password: admin123)</p>";
     
     // Insert default settings
     $defaultSettings = [
-        ['site_name', 'Student Management System'],
-        ['site_logo', ''],
-        ['certificate_template', ''],
-        ['registration_fee', '100'],
-        ['currency', 'INR'],
-        ['academic_year', '2024-25'],
-        ['whatsapp_api_url', ''],
-        ['email_smtp_host', ''],
-        ['email_smtp_port', '587'],
-        ['email_smtp_username', ''],
-        ['email_smtp_password', ''],
-        ['assessment_passing_marks', '70'],
-        ['theme_color', 'blue']
+        ['site_name', 'Student Management System', 'text', 'Website/Application name'],
+        ['site_logo', '', 'file', 'Website logo image'],
+        ['registration_fee', '100', 'number', 'Default registration fee amount'],
+        ['currency', 'INR', 'text', 'Currency symbol'],
+        ['academic_year', '2024-25', 'text', 'Current academic year'],
+        ['theme_color', '#3498db', 'text', 'Primary theme color'],
+        ['email_notifications', '1', 'boolean', 'Enable email notifications'],
+        ['sms_notifications', '0', 'boolean', 'Enable SMS notifications']
     ];
     
-    $stmt = $db->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)");
+    $stmt = $db->prepare("INSERT INTO `settings` (`setting_key`, `setting_value`, `setting_type`, `description`) VALUES (?, ?, ?, ?)");
     foreach ($defaultSettings as $setting) {
         $stmt->execute($setting);
     }
-    echo "<p>✓ Inserted default settings</p>";
+    echo "<p class='success'>✓ Inserted " . count($defaultSettings) . " default settings</p>";
     
     // Insert default sectors
     $sectors = [
@@ -313,15 +348,19 @@ try {
         ['Healthcare', 'HC001', 'Healthcare and Medical Services'],
         ['Automotive', 'AU001', 'Automotive and Transportation'],
         ['Retail', 'RT001', 'Retail and Customer Service'],
-        ['Banking', 'BK001', 'Banking and Financial Services'],
-        ['Manufacturing', 'MF001', 'Manufacturing and Production']
+        ['Banking & Finance', 'BF001', 'Banking and Financial Services'],
+        ['Manufacturing', 'MF001', 'Manufacturing and Production'],
+        ['Beauty & Wellness', 'BW001', 'Beauty and Wellness Services'],
+        ['Tourism & Hospitality', 'TH001', 'Tourism and Hospitality Services'],
+        ['Agriculture', 'AG001', 'Agriculture and Related Services'],
+        ['Construction', 'CS001', 'Construction and Real Estate']
     ];
     
-    $stmt = $db->prepare("INSERT INTO sectors (name, code, description) VALUES (?, ?, ?)");
+    $stmt = $db->prepare("INSERT INTO `sectors` (`name`, `code`, `description`) VALUES (?, ?, ?)");
     foreach ($sectors as $sector) {
         $stmt->execute($sector);
     }
-    echo "<p>✓ Inserted " . count($sectors) . " sectors</p>";
+    echo "<p class='success'>✓ Inserted " . count($sectors) . " sectors</p>";
     
     // Insert default courses
     $courses = [
@@ -329,31 +368,72 @@ try {
         ['Digital Marketing', 'DM001', 1, 3, 8000.00, 'Complete Digital Marketing and Social Media Marketing'],
         ['Data Entry Operator', 'DE001', 1, 2, 5000.00, 'Computer Data Entry and MS Office'],
         ['Mobile App Development', 'MA001', 1, 8, 20000.00, 'Android and iOS App Development'],
+        ['Cyber Security', 'CS001', 1, 4, 18000.00, 'Information Security and Ethical Hacking'],
+        
         ['Nursing Assistant', 'NA001', 2, 12, 25000.00, 'Healthcare and Patient Care Assistant'],
         ['Medical Lab Technician', 'ML001', 2, 10, 18000.00, 'Laboratory Testing and Analysis'],
+        ['Pharmacy Assistant', 'PA001', 2, 6, 12000.00, 'Pharmaceutical Services and Medicine Management'],
+        
         ['Automotive Technician', 'AT001', 3, 8, 18000.00, 'Vehicle Maintenance and Repair'],
         ['Electric Vehicle Tech', 'EV001', 3, 6, 22000.00, 'Electric Vehicle Technology and Maintenance'],
+        
         ['Retail Sales Associate', 'RS001', 4, 4, 10000.00, 'Customer Service and Sales'],
         ['E-commerce Specialist', 'EC001', 4, 5, 12000.00, 'Online Business and E-commerce Management'],
+        
         ['Banking Operations', 'BO001', 5, 6, 12000.00, 'Banking Procedures and Customer Relations'],
         ['Financial Services', 'FS001', 5, 8, 16000.00, 'Investment and Financial Planning'],
-        ['Production Supervisor', 'PS001', 6, 9, 14000.00, 'Manufacturing Process Management'],
-        ['Quality Control', 'QC001', 6, 7, 13000.00, 'Quality Assurance and Control'],
-        ['Machine Operator', 'MO001', 6, 5, 11000.00, 'Industrial Machine Operations']
+        ['Insurance Agent', 'IA001', 5, 3, 8000.00, 'Insurance Products and Customer Service']
     ];
     
-    $stmt = $db->prepare("INSERT INTO courses (name, code, sector_id, duration_months, fee_amount, description) VALUES (?, ?, ?, ?, ?, ?)");
+    $stmt = $db->prepare("INSERT INTO `courses` (`name`, `code`, `sector_id`, `duration_months`, `fee_amount`, `description`) VALUES (?, ?, ?, ?, ?, ?)");
     foreach ($courses as $course) {
         $stmt->execute($course);
     }
-    echo "<p>✓ Inserted " . count($courses) . " courses</p>";
+    echo "<p class='success'>✓ Inserted " . count($courses) . " courses</p>";
     
-    echo "<p style='color: green; font-weight: bold; font-size: 18px;'>✅ Database setup completed successfully!</p>";
-    echo "<p><a href='setup_dummy_data.php' class='btn btn-primary'>→ Continue to Dummy Data Setup</a></p>";
-    echo "<p><a href='login.php' class='btn btn-secondary'>← Back to Login</a></p>";
+    // Insert sample training center
+    $tcPassword = password_hash('demo123', PASSWORD_DEFAULT);
+    $stmt = $db->prepare("INSERT INTO `training_centers` (`tc_id`, `name`, `contact_person`, `email`, `phone`, `address`, `city`, `state`, `pincode`, `password`, `status`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute(['TC2024001', 'Demo Training Center', 'John Doe', 'demo@center.com', '9876543210', '123 Training Street', 'Mumbai', 'Maharashtra', '400001', $tcPassword, 'active']);
+    echo "<p class='success'>✓ Created demo training center (email: demo@center.com, password: demo123)</p>";
+    
+    // Insert sample student
+    $studentPassword = password_hash('student123', PASSWORD_DEFAULT);
+    $stmt = $db->prepare("INSERT INTO `students` (`enrollment_no`, `name`, `father_name`, `email`, `phone`, `aadhaar`, `dob`, `gender`, `education`, `course_id`, `training_center_id`, `address`, `password`, `status`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->execute(['2024001', 'Test Student', 'Test Father', 'student@test.com', '9999999999', '123456789012', '2000-01-01', 'Male', 'Graduation', 1, 1, 'Test Address', $studentPassword, 'active']);
+    echo "<p class='success'>✓ Created demo student (phone: 9999999999, password: student123)</p>";
+    
+    echo "<div style='background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 20px; border-radius: 10px; margin: 20px 0;'>";
+    echo "<h3 style='color: #155724; margin-top: 0;'>✅ Database Setup Completed Successfully!</h3>";
+    echo "<p><strong>Admin Login:</strong> username: admin, password: admin123</p>";
+    echo "<p><strong>Student Login:</strong> phone: 9999999999, password: student123</p>";
+    echo "<p><strong>Training Center Login:</strong> email: demo@center.com, password: demo123</p>";
+    echo "</div>";
+    
+    echo "<div style='text-align: center; margin: 30px 0;'>";
+    echo "<a href='login-new.php' class='btn btn-primary'>🚀 Go to Login Page</a> ";
+    echo "<a href='dashboard-modern.php' class='btn btn-secondary'>📊 View Dashboard</a>";
+    echo "</div>";
     
 } catch (Exception $e) {
-    echo "<p style='color: red;'>Error: " . $e->getMessage() . "</p>";
-    echo "<pre>" . $e->getTraceAsString() . "</pre>";
+    echo "<div style='background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 20px; border-radius: 10px; margin: 20px 0;'>";
+    echo "<h3 style='color: #721c24; margin-top: 0;'>❌ Database Setup Failed</h3>";
+    echo "<p><strong>Error:</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
+    echo "<details><summary>Technical Details</summary><pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre></details>";
+    echo "</div>";
+    
+    echo "<div style='text-align: center; margin: 30px 0;'>";
+    echo "<a href='config-check.php' class='btn btn-secondary'>🔧 Check Configuration</a> ";
+    echo "<a href='../config/database.php' class='btn btn-secondary'>⚙️ Database Config</a>";
+    echo "</div>";
+} finally {
+    // Always re-enable foreign key checks
+    try {
+        $db->exec("SET FOREIGN_KEY_CHECKS = 1");
+    } catch (Exception $e) {
+        // Ignore errors when re-enabling
+    }
 }
+
+echo "</div></body></html>";
 ?>

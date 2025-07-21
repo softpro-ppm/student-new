@@ -5,7 +5,7 @@
  */
 session_start();
 require_once '../includes/auth.php';
-require_once '../config/database.php';
+require_once '../config/database-simple.php';
 
 // Check if user is logged in
 if (!isLoggedIn()) {

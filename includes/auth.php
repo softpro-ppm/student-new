@@ -2,14 +2,13 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require_once '../config/database.php';
+require_once __DIR__ . '/../config/database-simple.php';
 
 class Auth {
     private $db;
     
     public function __construct() {
-        $database = new Database();
-        $this->db = $database->getConnection();
+        $this->db = getConnection();
     }
     
     public function login($username, $password) {
