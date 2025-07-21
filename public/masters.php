@@ -9,8 +9,8 @@ if (!isLoggedIn()) {
     exit();
 }
 
-$user = $_SESSION['user'];
-$userRole = $_SESSION['user_role'];
+$user = getCurrentUser();
+$userRole = getCurrentUserRole();
 
 // Initialize database connection
 $database = new Database();
@@ -437,7 +437,7 @@ try {
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($user['name'] ?? $user['username']); ?>
+                            <i class="fas fa-user me-1"></i><?php echo htmlspecialchars(getCurrentUserName()); ?>
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="logout.php">

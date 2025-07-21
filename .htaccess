@@ -1,0 +1,33 @@
+# Apache Configuration for Student Management System
+RewriteEngine On
+
+# Security: Prevent access to sensitive directories
+RewriteRule ^(config|includes|scripts|uploads)/ - [F,L]
+RewriteRule ^\.env$ - [F,L]
+
+# Redirect all requests to public folder if file doesn't exist in root
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteRule ^(.*)$ public/$1 [L]
+
+# Set default index file
+DirectoryIndex public/index.php public/login.php
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options nosniff
+    Header set X-Frame-Options DENY
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# PHP settings
+<IfModule mod_php7.c>
+    php_value display_errors On
+    php_value error_reporting E_ALL
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_value display_errors On
+    php_value error_reporting E_ALL
+</IfModule>

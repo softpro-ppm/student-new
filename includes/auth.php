@@ -289,4 +289,58 @@ function createPasswordResetsTable() {
 }
 
 createPasswordResetsTable();
+
+// Helper functions for backward compatibility
+function isLoggedIn() {
+    return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+}
+
+function getCurrentUser() {
+    if (isLoggedIn()) {
+        return $_SESSION['user'] ?? [
+            'username' => $_SESSION['username'] ?? '',
+            'name' => $_SESSION['name'] ?? '',
+            'email' => $_SESSION['email'] ?? '',
+            'role' => $_SESSION['role'] ?? '',
+            'id' => $_SESSION['user_id'] ?? 0
+        ];
+    }
+    return null;
+}
+
+function getCurrentUserRole() {
+    if (isLoggedIn()) {
+        return $_SESSION['user_role'] ?? $_SESSION['role'] ?? null;
+    }
+    return null;
+}
+
+function getCurrentUserName() {
+    $user = getCurrentUser();
+    if ($user) {
+        return $user['name'] ?? $user['username'] ?? 'User';
+    }
+    return 'Guest';
+}
+
+function requireLogin() {
+    if (!isLoggedIn()) {
+        header('Location: login.php');
+        exit();
+    }
+}
+
+function requireRole($roles) {
+    requireLogin();
+    
+    if (is_string($roles)) {
+        $roles = [$roles];
+    }
+    
+    $userRole = getCurrentUserRole();
+    if (!in_array($userRole, $roles)) {
+        header('Location: unauthorized.php');
+        exit();
+    }
+}
 ?>

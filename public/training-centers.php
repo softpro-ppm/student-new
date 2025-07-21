@@ -11,8 +11,8 @@ if (!isLoggedIn()) {
 $database = new Database();
 $db = $database->getConnection();
 
-$user = $_SESSION['user'];
-$userRole = $user['role'];
+$user = getCurrentUser();
+$userRole = getCurrentUserRole();
 
 // Check if user has permission
 if ($userRole !== 'admin') {
