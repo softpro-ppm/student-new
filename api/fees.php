@@ -1,15 +1,13 @@
 <?php
 header('Content-Type: application/json');
 require_once '../includes/auth.php';
-require_once '../config/database.php';
 
 if (!isLoggedIn()) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit();
 }
 
-$database = new Database();
-$db = $database->getConnection();
+$db = getConnection();
 
 $user = $_SESSION['user'];
 

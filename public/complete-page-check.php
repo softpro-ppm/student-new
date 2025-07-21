@@ -102,7 +102,7 @@ echo "<div class='info page-test'>";
 echo "<h3>System Health Checks</h3>";
 
 // Check includes
-$includes = ['../includes/auth.php', '../includes/layout.php', '../config/database.php'];
+$includes = ['../includes/auth.php', '../includes/layout.php', '../config/database-simple.php'];
 foreach ($includes as $include) {
     if (file_exists($include)) {
         echo "<span style='color: green;'>✓ $include exists</span><br>";
@@ -124,7 +124,7 @@ try {
 
 // Check database connection
 try {
-    require_once '../config/database.php';
+    // Use getConnection() function which should already be available from auth.php
     $db = getConnection();
     if ($db) {
         echo "<span style='color: green;'>✓ Database connection working</span><br>";

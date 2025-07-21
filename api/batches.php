@@ -1,13 +1,11 @@
 <?php
 header('Content-Type: application/json');
 require_once '../includes/auth.php';
-require_once '../config/database.php';
 
 $auth = new Auth();
 $auth->requireLogin();
 
-$database = new Database();
-$db = $database->getConnection();
+$db = getConnection();
 
 $currentUser = $auth->getCurrentUser();
 $action = $_GET['action'] ?? '';
