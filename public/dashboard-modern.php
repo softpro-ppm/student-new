@@ -162,7 +162,7 @@ try {
     if ($userRole === 'admin') {
         // Recent students (last 10)
         $stmt = $db->prepare("
-            SELECT s.name, s.email, s.created_at, tc.name as center_name 
+            SELECT s.name, s.email, s.created_at, tc.center_name as center_name 
             FROM students s 
             LEFT JOIN training_centers tc ON s.training_center_id = tc.id 
             WHERE s.status = 'active' 
@@ -186,7 +186,7 @@ try {
 
         // Upcoming batches
         $stmt = $db->prepare("
-            SELECT b.name as batch_name, b.start_date, c.name as course_name, tc.name as center_name 
+            SELECT b.batch_name as batch_name, b.start_date, c.name as course_name, tc.center_name as center_name 
             FROM batches b 
             JOIN courses c ON b.course_id = c.id 
             LEFT JOIN training_centers tc ON b.training_center_id = tc.id 
@@ -577,4 +577,5 @@ setTimeout(function() {
 console.log('Dashboard loaded successfully');
 </script>
 
-<?php renderFooter(); ?>
+</body>
+</html>

@@ -692,4 +692,5 @@ function deleteTrainingCenter(id) {
 }
 </style>
 
-<?php renderFooter(); ?>
+</body>
+</html>

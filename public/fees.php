@@ -1,19 +1,18 @@
 <?php
 session_start();
 require_once '../includes/auth.php';
+require_once '../config/database.php';
 
 if (!isLoggedIn()) {
     header('Location: login.php');
     exit();
 }
 
-$db = getConnection();
-if (!$db) {
-    die('Database connection failed');
-}
+$database = new Database();
+$db = $database->getConnection();
 
-$user = getCurrentUser();
-$userRole = getCurrentUserRole();
+$user = $_SESSION['user'];
+$userRole = $user['role'];
 
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -148,7 +147,7 @@ if ($userRole === 'training_partner') {
 // Fetch fees
 $stmt = $db->prepare("
     SELECT f.*, s.name as student_name, s.enrollment_number, 
-           c.name as course_name, tc.name as training_center_name,
+           c.name as course_name, tc.center_name as training_center_name,
            u.name as approved_by_name
     FROM fees f
     JOIN students s ON f.student_id = s.id
@@ -191,56 +190,211 @@ $pendingFees = array_sum(array_map(function($fee) {
     return $fee['status'] === 'pending' ? $fee['amount'] : 0;
 }, $fees));
 
-include '../includes/layout.php';
-renderHeader('Fees Management');
 ?>
-
-<div class="container-fluid">
-    <div class="row">
-        <?php renderSidebar($userRole); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fees Management - Student Management System</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- DataTables CSS -->
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
         
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">
-                    <i class="fas fa-rupee-sign me-2"></i>Fees Management
-                </h1>
-                <div class="btn-toolbar mb-2 mb-md-0">
-                    <?php if ($userRole === 'admin' || $userRole === 'training_partner'): ?>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFeeModal">
-                        <i class="fas fa-plus me-1"></i>Add Fee Record
-                    </button>
-                    <?php endif; ?>
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            margin: 0.25rem 0;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .main-content {
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .border-left-primary { border-left: 0.25rem solid #4e73df !important; }
+        .border-left-success { border-left: 0.25rem solid #1cc88a !important; }
+        .border-left-info { border-left: 0.25rem solid #36b9cc !important; }
+        .border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
+        
+        .text-xs {
+            font-size: 0.7rem;
+        }
+        
+        .shadow {
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+        }
+        
+        .text-gray-300 {
+            color: #dddfeb !important;
+        }
+        
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+        
+        .table th {
+            border-top: none;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        
+        .btn {
+            border-radius: 10px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0">
+                <div class="sidebar">
+                    <div class="p-3">
+                        <h4 class="text-white mb-0">
+                            <i class="fas fa-graduation-cap me-2"></i>SMS
+                        </h4>
+                        <small class="text-light opacity-75">Student Management</small>
+                    </div>
+                    <hr class="text-light">
+                    <nav class="nav flex-column px-3">
+                        <a class="nav-link" href="dashboard.php">
+                            <i class="fas fa-home me-2"></i>Dashboard
+                        </a>
+                        
+                        <?php if ($userRole === 'admin'): ?>
+                        <a class="nav-link" href="training-centers.php">
+                            <i class="fas fa-building me-2"></i>Training Centers
+                        </a>
+                        <a class="nav-link" href="masters.php">
+                            <i class="fas fa-cogs me-2"></i>Masters
+                        </a>
+                        <?php endif; ?>
+                        
+                        <?php if ($userRole === 'admin' || $userRole === 'training_partner'): ?>
+                        <a class="nav-link" href="students.php">
+                            <i class="fas fa-users me-2"></i>Students
+                        </a>
+                        <a class="nav-link" href="batches.php">
+                            <i class="fas fa-layer-group me-2"></i>Batches
+                        </a>
+                        <a class="nav-link" href="assessments.php">
+                            <i class="fas fa-clipboard-check me-2"></i>Assessments
+                        </a>
+                        <a class="nav-link active" href="fees.php">
+                            <i class="fas fa-money-bill me-2"></i>Fees
+                        </a>
+                        <?php endif; ?>
+                        
+                        <a class="nav-link" href="reports.php">
+                            <i class="fas fa-chart-bar me-2"></i>Reports
+                        </a>
+                        
+                        <hr class="text-light">
+                        <a class="nav-link" href="logout.php">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </nav>
                 </div>
             </div>
 
-            <!-- Statistics Cards -->
-            <div class="row mb-4">
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-primary shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                        Total Fees
-                                    </div>
-                                    <div class="h5 mb-0 font-weight-bold text-gray-800">₹<?php echo number_format($totalFees, 2); ?></div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-calculator fa-2x text-gray-300"></i>
-                                </div>
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    <!-- Page Header -->
+                    <div class="page-header">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h2 class="mb-1"><i class="fas fa-money-bill me-2 text-primary"></i>Fees Management</h2>
+                                <p class="text-muted mb-0">Manage student fee records and payments</p>
+                            </div>
+                            <div class="col-auto">
+                                <?php if ($userRole === 'admin' || $userRole === 'training_partner'): ?>
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFeeModal">
+                                    <i class="fas fa-plus me-1"></i>Add Fee Record
+                                </button>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card border-left-success shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2">
-                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                        Paid Fees
-                                    </div>
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Fees
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">₹<?php echo number_format($totalFees, 2); ?></div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calculator fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Paid Fees
+                            </div>
                                     <div class="h5 mb-0 font-weight-bold text-gray-800">₹<?php echo number_format($paidFees, 2); ?></div>
                                 </div>
                                 <div class="col-auto">
@@ -389,9 +543,6 @@ renderHeader('Fees Management');
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
-</div>
 
 <?php if ($userRole === 'admin' || $userRole === 'training_partner'): ?>
 <!-- Add Fee Modal -->
@@ -486,12 +637,10 @@ renderHeader('Fees Management');
 </div>
 <?php endif; ?>
 
-<!-- DataTables CSS -->
-<link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-
-<!-- DataTables JS -->
-<script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+            </div> <!-- End main-content -->
+        </div> <!-- End col-md-9 col-lg-10 -->
+    </div> <!-- End row -->
+</div> <!-- End container-fluid -->
 
 <script>
 $(document).ready(function() {
@@ -625,31 +774,5 @@ function rejectFee(feeId) {
 <?php endif; ?>
 </script>
 
-<style>
-.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
-.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
-.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
-.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
-
-.text-xs {
-    font-size: 0.7rem;
-}
-
-.shadow {
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
-}
-
-.text-gray-300 {
-    color: #dddfeb !important;
-}
-
-.text-gray-800 {
-    color: #5a5c69 !important;
-}
-
-.table th {
-    border-top: none;
-}
-</style>
-
-<?php renderFooter(); ?>
+</body>
+</html>

@@ -8,8 +8,8 @@ if (!isLoggedIn()) {
     exit();
 }
 
-$user = getCurrentUser();
-$userRole = getCurrentUserRole();
+$user = $_SESSION['user'];
+$userRole = $_SESSION['user_role'];
 
 // Initialize database connection
 $db = getConnection();
@@ -341,8 +341,36 @@ try {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <style>
-        .navbar-brand img {
-            height: 40px;
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            margin: 0.25rem 0;
+            transition: all 0.3s ease;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            transform: translateX(5px);
+        }
+        .main-content {
+            padding: 2rem;
+        }
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
         
         .stats-card {
@@ -352,6 +380,12 @@ try {
             padding: 1.5rem;
             margin-bottom: 1rem;
             border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
         }
         
         .stats-card .card-title {
@@ -378,7 +412,7 @@ try {
         .card {
             border: none;
             border-radius: 15px;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
         
         .card-header {
@@ -477,191 +511,176 @@ try {
         }
     </style>
 </head>
-<body class="bg-light">
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="dashboard.php">
-                <i class="fas fa-graduation-cap me-2"></i>
-                Student Management System
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="dashboard.php">
-                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                        </a>
-                    </li>
-                    
-                    <?php if ($userRole === 'admin'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="training-centers.php">
-                            <i class="fas fa-building me-1"></i>Training Centers
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="masters.php">
-                            <i class="fas fa-cogs me-1"></i>Masters
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                    
-                    <?php if ($userRole !== 'student'): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="students.php">
-                            <i class="fas fa-users me-1"></i>Students
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="batches.php">
-                            <i class="fas fa-layer-group me-1"></i>Batches
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="fees.php">
-                            <i class="fas fa-money-bill me-1"></i>Fees
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="assessments.php">
-                            <i class="fas fa-clipboard-list me-1"></i>Assessments
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-                
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-1"></i><?php echo htmlspecialchars(getCurrentUserName()); ?>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="logout.php">
-                                <i class="fas fa-sign-out-alt me-1"></i>Logout
-                            </a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid mt-4">
-        <!-- Page Header -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2><i class="fas fa-clipboard-list me-2 text-primary"></i>Assessments Management</h2>
-                        <p class="text-muted mb-0">Create and manage online assessments for courses</p>
-                    </div>
-                    <?php if ($userRole !== 'student'): ?>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assessmentModal">
-                        <i class="fas fa-plus me-2"></i>Create Assessment
-                    </button>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistics Cards -->
-        <div class="row mb-4">
-            <div class="col-xl-3 col-md-6">
-                <div class="card stats-card position-relative">
-                    <div class="card-body">
-                        <h6 class="card-title">Total Assessments</h6>
-                        <p class="card-text"><?php echo number_format($totalAssessments); ?></p>
-                        <i class="fas fa-clipboard-list card-icon"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-xl-3 col-md-6">
-                <div class="card stats-card position-relative">
-                    <div class="card-body">
-                        <h6 class="card-title">Active Assessments</h6>
-                        <p class="card-text"><?php echo number_format($activeAssessments); ?></p>
-                        <i class="fas fa-check-circle card-icon"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-xl-3 col-md-6">
-                <div class="card stats-card position-relative">
-                    <div class="card-body">
-                        <h6 class="card-title">Total Attempts</h6>
-                        <p class="card-text"><?php echo number_format($totalAttempts); ?></p>
-                        <i class="fas fa-users card-icon"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-xl-3 col-md-6">
-                <div class="card stats-card position-relative">
-                    <div class="card-body">
-                        <h6 class="card-title">Average Score</h6>
-                        <p class="card-text"><?php echo number_format($avgScore, 1); ?>%</p>
-                        <i class="fas fa-chart-line card-icon"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Success Alert -->
-        <div class="alert alert-success" role="alert" style="display: none;" id="successAlert">
-            <i class="fas fa-check-circle me-2"></i>
-            <span id="successMessage"></span>
-        </div>
-
-        <!-- Error Alert -->
-        <div class="alert alert-danger" role="alert" style="display: none;" id="errorAlert">
-            <i class="fas fa-exclamation-circle me-2"></i>
-            <span id="errorMessage"></span>
-        </div>
-
-        <!-- Assessments Table -->
+<body>
+    <div class="container-fluid">
         <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-list me-2"></i>Assessments List
-                        </h5>
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0">
+                <div class="sidebar">
+                    <div class="p-3">
+                        <h4 class="text-white mb-0">
+                            <i class="fas fa-graduation-cap me-2"></i>SMS
+                        </h4>
+                        <small class="text-light opacity-75">Student Management</small>
                     </div>
-                    <div class="card-body">
-                        <p class="text-muted mb-3">Create comprehensive online assessments with multiple question types including multiple choice, true/false, and text answers. Set duration limits, passing scores, and attempt restrictions for effective evaluation.</p>
+                    <hr class="text-light">
+                    <nav class="nav flex-column px-3">
+                        <a class="nav-link" href="dashboard.php">
+                            <i class="fas fa-home me-2"></i>Dashboard
+                        </a>
                         
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Assessment Title</th>
-                                        <th>Course</th>
-                                        <th>Duration</th>
-                                        <th>Pass Score</th>
-                                        <th>Status</th>
-                                        <?php if ($userRole !== 'student'): ?>
-                                        <th>Actions</th>
-                                        <?php endif; ?>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td colspan="<?php echo $userRole !== 'student' ? '6' : '5'; ?>" class="text-center py-4">
-                                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
-                                            <p class="text-muted mb-0">No assessments created yet.</p>
-                                            <?php if ($userRole !== 'student'): ?>
-                                            <p class="text-muted">Click "Create Assessment" to add your first assessment.</p>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <?php if ($userRole === 'admin'): ?>
+                        <a class="nav-link" href="training-centers.php">
+                            <i class="fas fa-building me-2"></i>Training Centers
+                        </a>
+                        <a class="nav-link" href="masters.php">
+                            <i class="fas fa-cogs me-2"></i>Masters
+                        </a>
+                        <?php endif; ?>
+                        
+                        <?php if ($userRole === 'admin' || $userRole === 'training_partner'): ?>
+                        <a class="nav-link" href="students.php">
+                            <i class="fas fa-users me-2"></i>Students
+                        </a>
+                        <a class="nav-link" href="batches.php">
+                            <i class="fas fa-layer-group me-2"></i>Batches
+                        </a>
+                        <a class="nav-link active" href="assessments.php">
+                            <i class="fas fa-clipboard-check me-2"></i>Assessments
+                        </a>
+                        <a class="nav-link" href="fees.php">
+                            <i class="fas fa-money-bill me-2"></i>Fees
+                        </a>
+                        <?php endif; ?>
+                        
+                        <a class="nav-link" href="reports.php">
+                            <i class="fas fa-chart-bar me-2"></i>Reports
+                        </a>
+                        
+                        <hr class="text-light">
+                        <a class="nav-link" href="logout.php">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10">
+                <div class="main-content">
+                    <!-- Page Header -->
+                    <div class="page-header">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h2 class="mb-1"><i class="fas fa-clipboard-list me-2 text-primary"></i>Assessments Management</h2>
+                                <p class="text-muted mb-0">Create and manage online assessments for courses</p>
+                            </div>
+                            <div class="col-auto">
+                                <?php if ($userRole !== 'student'): ?>
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assessmentModal">
+                                    <i class="fas fa-plus me-2"></i>Create Assessment
+                                </button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-xl-3 col-md-6">
+                            <div class="stats-card position-relative">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Assessments</h6>
+                                    <p class="card-text"><?php echo number_format($totalAssessments); ?></p>
+                                    <i class="fas fa-clipboard-list card-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-xl-3 col-md-6">
+                            <div class="stats-card position-relative">
+                                <div class="card-body">
+                                    <h6 class="card-title">Active Assessments</h6>
+                                    <p class="card-text"><?php echo number_format($activeAssessments); ?></p>
+                                    <i class="fas fa-check-circle card-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-xl-3 col-md-6">
+                            <div class="stats-card position-relative">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Attempts</h6>
+                                    <p class="card-text"><?php echo number_format($totalAttempts); ?></p>
+                                    <i class="fas fa-users card-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-xl-3 col-md-6">
+                            <div class="stats-card position-relative">
+                                <div class="card-body">
+                                    <h6 class="card-title">Average Score</h6>
+                                    <p class="card-text"><?php echo number_format($avgScore, 1); ?>%</p>
+                                    <i class="fas fa-chart-line card-icon"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Success Alert -->
+                    <div class="alert alert-success" role="alert" style="display: none;" id="successAlert">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <span id="successMessage"></span>
+                    </div>
+
+                    <!-- Error Alert -->
+                    <div class="alert alert-danger" role="alert" style="display: none;" id="errorAlert">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <span id="errorMessage"></span>
+                    </div>
+
+                    <!-- Assessments Table -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-list me-2"></i>Assessments List
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted mb-3">Create comprehensive online assessments with multiple question types including multiple choice, true/false, and text answers. Set duration limits, passing scores, and attempt restrictions for effective evaluation.</p>
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Assessment Title</th>
+                                                    <th>Course</th>
+                                                    <th>Duration</th>
+                                                    <th>Pass Score</th>
+                                                    <th>Status</th>
+                                                    <?php if ($userRole !== 'student'): ?>
+                                                    <th>Actions</th>
+                                                    <?php endif; ?>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td colspan="<?php echo $userRole !== 'student' ? '6' : '5'; ?>" class="text-center py-4">
+                                                        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                                                        <p class="text-muted mb-0">No assessments created yet.</p>
+                                                        <?php if ($userRole !== 'student'): ?>
+                                                        <p class="text-muted">Click "Create Assessment" to add your first assessment.</p>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1015,4 +1015,5 @@ function setStepActive(stepNumber) {
 console.log('Bulk upload module loaded successfully');
 </script>
 
-<?php renderFooter(); ?>
+</body>
+</html>

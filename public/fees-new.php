@@ -651,4 +651,5 @@ function rejectFee(feeId) {
 }
 </style>
 
-<?php renderFooter(); ?>
+</body>
+</html>

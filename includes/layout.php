@@ -806,7 +806,7 @@ function renderSidebar($activePage = '') {
         <div class="position-sticky pt-3">
             <ul class="nav flex-column">
                 <?php foreach ($menuItems as $item): ?>
-                    <?php if (in_array($currentUser['role'], $item['roles'])): ?>
+                    <?php if (isset($currentUser['role']) && in_array($currentUser['role'], $item['roles'])): ?>
                         <li class="nav-item">
                             <a class="nav-link <?php echo ($activePage === str_replace('.php', '', $item['url'])) ? 'active' : ''; ?>" 
                                href="<?php echo $item['url']; ?>">

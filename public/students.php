@@ -130,14 +130,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Fetch students based on user role
-$studentsQuery = "
-    SELECT s.*, c.name as course_name, b.batch_name, tc.center_name 
-    FROM students s 
-    LEFT JOIN courses c ON s.course_id = c.id 
-    LEFT JOIN batches b ON s.batch_id = b.id 
-    LEFT JOIN training_centers tc ON s.training_center_id = tc.id 
-    WHERE s.status != 'deleted'
-";
+// First check if courses table exists
+$tablesExist = true;
+try {
+    $db->query("SELECT 1 FROM courses LIMIT 1");
+} catch (Exception $e) {
+    $tablesExist = false;
+}
+
+if ($tablesExist) {
+    $studentsQuery = "
+        SELECT s.*, 
+               COALESCE(c.name, 'No Course') as course_name, 
+               COALESCE(b.batch_name, 'No Batch') as batch_name, 
+               COALESCE(tc.center_name, 'No Center') as center_name 
+        FROM students s 
+        LEFT JOIN courses c ON s.course_id = c.id 
+        LEFT JOIN batches b ON s.batch_id = b.id 
+        LEFT JOIN training_centers tc ON s.training_center_id = tc.id 
+        WHERE s.status != 'deleted'
+    ";
+} else {
+    $studentsQuery = "
+        SELECT s.*, 
+               'No Course' as course_name, 
+               'No Batch' as batch_name, 
+               COALESCE(tc.center_name, 'No Center') as center_name 
+        FROM students s 
+        LEFT JOIN training_centers tc ON s.training_center_id = tc.id 
+        WHERE s.status != 'deleted'
+    ";
+}
 
 if ($userRole === 'training_partner') {
     $studentsQuery .= " AND s.training_center_id = ?";
@@ -151,21 +174,33 @@ if ($userRole === 'training_partner') {
 $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch courses for dropdown
-$stmt = $db->prepare("SELECT * FROM courses WHERE status = 'active' ORDER BY name");
-$stmt->execute();
-$courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$courses = [];
+try {
+    $stmt = $db->prepare("SELECT * FROM courses WHERE status = 'active' ORDER BY name");
+    $stmt->execute();
+    $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    // Courses table doesn't exist yet
+    $courses = [];
+}
 
 // Fetch batches for dropdown
-$batchesQuery = "SELECT b.*, c.name as course_name FROM batches b JOIN courses c ON b.course_id = c.id WHERE b.status = 'active'";
-if ($userRole === 'training_partner') {
-    $batchesQuery .= " AND b.training_center_id = ?";
-    $stmt = $db->prepare($batchesQuery . " ORDER BY b.batch_name");
-    $stmt->execute([$user['id']]);
-} else {
-    $stmt = $db->prepare($batchesQuery . " ORDER BY b.batch_name");
-    $stmt->execute();
+$batches = [];
+try {
+    $batchesQuery = "SELECT b.*, c.name as course_name FROM batches b JOIN courses c ON b.course_id = c.id WHERE b.status = 'active'";
+    if ($userRole === 'training_partner') {
+        $batchesQuery .= " AND b.training_center_id = ?";
+        $stmt = $db->prepare($batchesQuery . " ORDER BY b.batch_name");
+        $stmt->execute([$user['id']]);
+    } else {
+        $stmt = $db->prepare($batchesQuery . " ORDER BY b.batch_name");
+        $stmt->execute();
+    }
+    $batches = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    // Batches table doesn't exist yet
+    $batches = [];
 }
-$batches = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch training centers for admin
 $trainingCenters = [];

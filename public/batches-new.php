@@ -762,4 +762,5 @@ function deleteBatch(id) {
 }
 </style>
 
-<?php renderFooter(); ?>
+</body>
+</html>

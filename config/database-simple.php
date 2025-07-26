@@ -4,10 +4,16 @@
 // Get database connection using PDO (only declare if not already declared)
 if (!function_exists('getConnection')) {
     function getConnection() {
-        $host = 'localhost';
-        $dbname = 'u820431346_student_new';
-        $username = 'u820431346_student_new';
-        $password = 'Softpro@123';
+
+         $host = 'localhost';
+         $dbname = 'student';
+         $username = 'root';
+         $password = '';
+
+        // $host = 'localhost';
+        // $dbname = 'u820431346_student_new';
+        // $username = 'u820431346_student_new';
+        // $password = 'Softpro@123';
         
         try {
             $dsn = "mysql:host=$host;dbname=$dbname;charset=utf8mb4";

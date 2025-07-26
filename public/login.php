@@ -1,7 +1,3 @@
-
-testing
-
-
 <?php
 // Modern Student Management System - Enhanced Login
 ini_set('display_errors', 1);
@@ -10,13 +6,16 @@ error_reporting(E_ALL);
 
 session_start();
 
+// Prevent table creation during login
+$_SESSION['skip_table_creation'] = true;
+
 // Include required files
 require_once '../config/database-simple.php';
 require_once '../includes/auth.php';
 
 // If already logged in, redirect to dashboard
 if (isLoggedIn()) {
-    header('Location: dashboard.php');
+    header('Location: dashboard-v2.php');
     exit();
 }
 
@@ -45,73 +44,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$db) {
                     $error = 'Database connection failed. Please try again later.';
                 } else {
-                    // Try users table first (admin and training partners)
-                    $stmt = $db->prepare("SELECT * FROM users WHERE username = ? OR email = ? OR phone = ?");
-                    $stmt->execute([$username, $username, $username]);
-                $user = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if ($user && password_verify($password, $user['password'])) {
-                    // Set session variables
-                    $_SESSION['logged_in'] = true;
-                    $_SESSION['user'] = $user;
-                    $_SESSION['user_role'] = $user['role'];
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['user_name'] = $user['full_name'] ?? $user['name'] ?? $user['username'];
+                    // Check if required tables exist
+                    $tables = ['users', 'training_centers', 'students'];
+                    $missingTables = [];
                     
-                    header('Location: dashboard.php');
-                    exit();
-                } else {
-                    // Try training_centers table
-                    $stmt = $db->prepare("SELECT * FROM training_centers WHERE email = ?");
-                    $stmt->execute([$username]);
-                    $tc = $stmt->fetch(PDO::FETCH_ASSOC);
+                    foreach ($tables as $table) {
+                        $stmt = $db->query("SHOW TABLES LIKE '$table'");
+                        if ($stmt->rowCount() == 0) {
+                            $missingTables[] = $table;
+                        }
+                    }
                     
-                    if ($tc && password_verify($password, $tc['password'])) {
-                        // Create session for training center
-                        $_SESSION['logged_in'] = true;
-                        $_SESSION['user'] = [
-                            'id' => $tc['id'],
-                            'username' => $tc['email'],
-                            'email' => $tc['email'],
-                            'full_name' => $tc['center_name'],
-                            'role' => 'training_partner'
-                        ];
-                        $_SESSION['user_role'] = 'training_partner';
-                        $_SESSION['user_id'] = $tc['id'];
-                        $_SESSION['user_name'] = $tc['center_name'];
-                        
-                        header('Location: dashboard.php');
-                        exit();
+                    if (!empty($missingTables)) {
+                        $error = 'Database not properly set up. Missing tables: ' . implode(', ', $missingTables) . '. <a href="setup-database-complete.php" class="text-decoration-none">Click here to set up the database</a>';
                     } else {
-                        // Try students table
-                        $stmt = $db->prepare("SELECT * FROM students WHERE phone = ? OR email = ?");
-                        $stmt->execute([$username, $username]);
-                        $student = $stmt->fetch(PDO::FETCH_ASSOC);
+                        // Try users table first (admin and training partners)
+                        $stmt = $db->prepare("SELECT * FROM users WHERE username = ? OR email = ? OR phone = ?");
+                        $stmt->execute([$username, $username, $username]);
+                        $user = $stmt->fetch(PDO::FETCH_ASSOC);
                         
-                        if ($student && password_verify($password, $student['password'])) {
-                            // Create session for student
+                        if ($user && password_verify($password, $user['password'])) {
+                            // Set session variables
                             $_SESSION['logged_in'] = true;
-                            $_SESSION['user'] = [
-                                'id' => $student['id'],
-                                'username' => $student['email'] ?? $student['phone'],
-                                'email' => $student['email'],
-                                'full_name' => $student['name'],
-                                'role' => 'student'
-                            ];
-                            $_SESSION['user_role'] = 'student';
-                            $_SESSION['user_id'] = $student['id'];
-                            $_SESSION['user_name'] = $student['name'];
+                            $_SESSION['user'] = $user;
+                            $_SESSION['user_role'] = $user['role'];
+                            $_SESSION['user_id'] = $user['id'];
+                            $_SESSION['user_name'] = $user['full_name'] ?? $user['name'] ?? $user['username'];
                             
-                            header('Location: dashboard.php');
+                            header('Location: dashboard-v2.php');
                             exit();
                         } else {
-                            $error = 'Invalid username or password.';
+                            // Try training_centers table
+                            $stmt = $db->prepare("SELECT * FROM training_centers WHERE email = ?");
+                            $stmt->execute([$username]);
+                            $tc = $stmt->fetch(PDO::FETCH_ASSOC);
+                            
+                            if ($tc && password_verify($password, $tc['password'])) {
+                                // Create session for training center
+                                $_SESSION['logged_in'] = true;
+                                $_SESSION['user'] = [
+                                    'id' => $tc['id'],
+                                    'username' => $tc['email'],
+                                    'email' => $tc['email'],
+                                    'full_name' => $tc['center_name'],
+                                    'role' => 'training_partner'
+                                ];
+                                $_SESSION['user_role'] = 'training_partner';
+                                $_SESSION['user_id'] = $tc['id'];
+                                $_SESSION['user_name'] = $tc['center_name'];
+                                
+                                header('Location: dashboard-v2.php');
+                                exit();
+                            } else {
+                                // Try students table
+                                $stmt = $db->prepare("SELECT * FROM students WHERE phone = ? OR email = ?");
+                                $stmt->execute([$username, $username]);
+                                $student = $stmt->fetch(PDO::FETCH_ASSOC);
+                                
+                                if ($student && password_verify($password, $student['password'])) {
+                                    // Create session for student
+                                    $_SESSION['logged_in'] = true;
+                                    $_SESSION['user'] = [
+                                        'id' => $student['id'],
+                                        'username' => $student['email'] ?? $student['phone'],
+                                        'email' => $student['email'],
+                                        'full_name' => $student['name'],
+                                        'role' => 'student'
+                                    ];
+                                    $_SESSION['user_role'] = 'student';
+                                    $_SESSION['user_id'] = $student['id'];
+                                    $_SESSION['user_name'] = $student['name'];
+                                    
+                                    header('Location: dashboard-v2.php');
+                                    exit();
+                                } else {
+                                    $error = 'Invalid username or password.';
+                                }
+                            }
                         }
                     }
                 }
+            } catch (Exception $e) {
+                $error = 'Login failed: ' . $e->getMessage();
             }
-        } catch (Exception $e) {
-            $error = 'Login failed: ' . $e->getMessage();
         }
     }
 }
@@ -205,7 +220,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="login-body">
                         <?php if ($error): ?>
                             <div class="alert alert-danger" role="alert">
-                                <i class="fas fa-exclamation-triangle me-2"></i><?php echo htmlspecialchars($error); ?>
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <?php 
+                                // Allow HTML in error message for setup link
+                                if (strpos($error, 'Missing tables') !== false) {
+                                    echo $error;
+                                } else {
+                                    echo htmlspecialchars($error);
+                                }
+                                ?>
                             </div>
                         <?php endif; ?>
                         
@@ -258,6 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="text-center mt-3">
                             <small class="text-muted">
                                 <a href="config-check.php" class="text-decoration-none">System Status</a> | 
+                                <a href="setup-database-complete.php" class="text-decoration-none">Setup Database</a> |
                                 <a href="../" class="text-decoration-none">Home</a>
                             </small>
                         </div>

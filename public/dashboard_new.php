@@ -99,7 +99,7 @@ if ($userRole === 'admin') {
     
     // Recent students
     $stmt = $db->prepare("
-        SELECT s.*, c.name as course_name, tc.name as training_center_name,
+        SELECT s.*, c.name as course_name, tc.center_name as training_center_name,
                b.name as batch_name
         FROM students s
         LEFT JOIN courses c ON s.course_id = c.id
@@ -162,7 +162,7 @@ if ($userRole === 'admin') {
 
 } else {
     // Student dashboard
-    $stmt = $db->prepare("SELECT s.*, c.name as course_name, tc.name as training_center_name, b.name as batch_name, b.start_date, b.end_date FROM students s LEFT JOIN courses c ON s.course_id = c.id LEFT JOIN training_centers tc ON s.training_center_id = tc.id LEFT JOIN batches b ON s.batch_id = b.id WHERE s.email = ?");
+    $stmt = $db->prepare("SELECT s.*, c.name as course_name, tc.center_name as training_center_name, b.batch_name as batch_name, b.start_date, b.end_date FROM students s LEFT JOIN courses c ON s.course_id = c.id LEFT JOIN training_centers tc ON s.training_center_id = tc.id LEFT JOIN batches b ON s.batch_id = b.id WHERE s.email = ?");
     $stmt->execute([$user['email']]);
     $studentInfo = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -798,4 +798,5 @@ function approveFee(feeId) {
 }
 </style>
 
-<?php renderFooter(); ?>
+</body>
+</html>

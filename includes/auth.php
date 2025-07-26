@@ -267,26 +267,39 @@ class Auth {
 
 // Create password resets table
 function createPasswordResetsTable() {
-    $db = getConnection();
-    
-    $createPasswordResets = "CREATE TABLE IF NOT EXISTS password_resets (
-        user_id INT PRIMARY KEY,
-        token VARCHAR(255) NOT NULL,
-        expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    )";
-    
     try {
+        $db = getConnection();
+        
+        // Check if users table exists first
+        $stmt = $db->query("SHOW TABLES LIKE 'users'");
+        if ($stmt->rowCount() == 0) {
+            // Users table doesn't exist, skip creating password_resets
+            return true;
+        }
+        
+        $createPasswordResets = "CREATE TABLE IF NOT EXISTS password_resets (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            token VARCHAR(255) NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_user_id (user_id),
+            INDEX idx_token (token)
+        )";
+        
         $db->exec($createPasswordResets);
         return true;
     } catch(PDOException $exception) {
-        echo "Table creation error: " . $exception->getMessage();
+        // Silently fail - don't break the system if table creation fails
+        error_log("Password resets table creation error: " . $exception->getMessage());
         return false;
     }
 }
 
-createPasswordResetsTable();
+// Only create table if not in a critical path
+if (!isset($_SESSION['skip_table_creation'])) {
+    createPasswordResetsTable();
+}
 
 // Helper functions for backward compatibility
 function isLoggedIn() {
