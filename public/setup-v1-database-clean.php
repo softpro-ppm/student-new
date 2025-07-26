@@ -1,9 +1,10 @@
 <?php
-require_once '../config/database-v1.php';
+require_once '../config/database.php';
 
 function importOldDatabaseClean() {
     try {
-        $conn = getOldConnection();
+        $database = new Database();
+        $conn = $database->getConnection();
         echo "Connected to the old database successfully.<br>";
 
         // First, check if database is already populated

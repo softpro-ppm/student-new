@@ -10,7 +10,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // Include database config
-require_once '../config/database-simple.php';
+require_once '../config/database.php';
 
 ?>
 <!DOCTYPE html>

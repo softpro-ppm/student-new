@@ -1,9 +1,10 @@
 <?php
-require_once '../config/database-v2.php';
+require_once '../config/database.php';
 
 function createV2SchemaPart3() {
     try {
-        $conn = getV2Connection();
+        $database = new Database();
+        $conn = $database->getConnection();
         echo "<h2>Creating Database v2.0 Schema - Phase 3 (Final)</h2>";
         
         $executed = 0;

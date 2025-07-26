@@ -21,7 +21,7 @@ if ($searchQuery) {
             JOIN results r ON c.result_id = r.id
             JOIN courses co ON s.course_id = co.id
             JOIN assessments a ON r.assessment_id = a.id
-            WHERE c.certificate_number = ? OR s.enrollment_number = ?
+            WHERE (c.certificate_number = ? OR s.enrollment_number = ?)
             AND c.status = 'generated'
         ");
         $stmt->execute([$searchQuery, $searchQuery]);
@@ -260,7 +260,7 @@ if ($certificate) {
                             
                             <h6 class="text-muted">Final Grade</h6>
                             
-                            <?php if ($certificate['certificate_path'] && file_exists($certificate['certificate_path'])): ?>
+                            <?php if ($certificate['certificate_path'] && file_exists(str_replace('../', '', $certificate['certificate_path']))): ?>
                                 <div class="mt-4">
                                     <a href="<?= str_replace('../', '', $certificate['certificate_path']) ?>" 
                                        target="_blank" 
@@ -270,7 +270,7 @@ if ($certificate) {
                                 </div>
                             <?php endif; ?>
                             
-                            <?php if ($certificate['qr_code_path'] && file_exists($certificate['qr_code_path'])): ?>
+                            <?php if ($certificate['qr_code_path'] && file_exists(str_replace('../', '', $certificate['qr_code_path']))): ?>
                                 <div class="mt-3">
                                     <img src="<?= str_replace('../', '', $certificate['qr_code_path']) ?>" 
                                          alt="QR Code" 

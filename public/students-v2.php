@@ -1,7 +1,7 @@
 <?php
 // Students Management - v2.0
 session_start();
-require_once '../config/database-v2.php';
+require_once '../config/database.php';
 
 $currentUser = ['role' => 'admin', 'name' => 'Administrator'];
 $message = '';
@@ -12,7 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
     try {
-        $conn = getV2Connection();
+        $database = new Database();
+        $conn = $database->getConnection();
         
         if ($action === 'add') {
             // Add new student

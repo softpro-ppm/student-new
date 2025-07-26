@@ -10,7 +10,7 @@ session_start();
 $_SESSION['skip_table_creation'] = true;
 
 // Include required files
-require_once '../config/database-simple.php';
+require_once '../config/database.php';
 require_once '../includes/auth.php';
 
 // If already logged in, redirect to dashboard
@@ -39,7 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if (!$error) {
             try {
-                $db = getConnection();
+                $database = new Database();
+                $db = $database->getConnection();
                 
                 if (!$db) {
                     $error = 'Database connection failed. Please try again later.';

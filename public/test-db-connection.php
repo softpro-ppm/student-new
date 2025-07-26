@@ -6,11 +6,12 @@ ini_set('display_errors', 1);
 echo "<h1>Database Connection Test</h1>";
 
 try {
-    require_once '../config/database-simple.php';
+    require_once '../config/database.php';
     
     echo "<p>✓ database-simple.php loaded successfully</p>";
     
-    $db = getConnection();
+    $database = new Database();
+    $db = $database->getConnection();
     
     if ($db) {
         echo "<p>✓ Database connection successful!</p>";

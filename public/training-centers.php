@@ -1,7 +1,7 @@
 <?php
 // Training Centers Management - v2.0 - Clean Layout Version
 session_start();
-require_once '../config/database-v2.php';
+require_once '../config/database.php';
 
 // Start output buffering to capture content
 ob_start();
@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
     try {
-        $conn = getV2Connection();
+        $conn = getConnection();
         
         if ($action === 'add') {
             // Add new training center
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all training centers and summary
 try {
-    $conn = getV2Connection();
+    $conn = getConnection();
     $stmt = $conn->query("
         SELECT * FROM training_centers 
         WHERE status != 'deleted' 

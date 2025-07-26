@@ -1,88 +1,102 @@
 <?php
-// Database Configuration - Fixed version
-// Simplified and error-free database configuration
+// --- Environment-specific Database Configuration ---
+
+// Check the server host to determine if it's a live or local environment.
+$is_live = (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] !== 'localhost' && $_SERVER['HTTP_HOST'] !== '127.0.0.1');
+
+if ($is_live) {
+    // --- Live Server Database Credentials ---
+    // IMPORTANT: Replace these placeholders with your actual live database details.
+    $db_host = 'localhost';
+    $db_name = 'u820431346_smis_new';
+    $db_username = 'u820431346_smis_new';
+    $db_password = '8b#U+Jp@R';
+} else {
+    // --- Local Server Database Credentials ---
+    $db_host = 'localhost';
+    $db_name = 'u820431346_smis'; // As per your SQL file
+    $db_username = 'root';
+    $db_password = '';
+}
+
+// --- Database Connection Functions ---
 
 // Only declare if not already declared to avoid redeclaration errors
 if (!function_exists('getConnection')) {
+    /**
+     * Establishes a PDO database connection using environment-specific credentials.
+     * @return PDO The database connection object.
+     * @throws Exception If the connection fails.
+     */
     function getConnection() {
-        $host = 'localhost';
-        $db_name = 'student';
-        $username = 'root';
-        $password = '';
+        global $db_host, $db_name, $db_username, $db_password;
 
         try {
-            $conn = new PDO("mysql:host=" . $host . ";dbname=" . $db_name, $username, $password);
+            $conn = new PDO("mysql:host=" . $db_host . ";dbname=" . $db_name, $db_username, $db_password);
             $conn->exec("set names utf8");
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             return $conn;
         } catch(PDOException $exception) {
+            // Log the detailed error message for debugging
             error_log("Database connection error: " . $exception->getMessage());
-            throw new Exception("Connection error. Please check configuration.");
+            // Provide a user-friendly error message
+            throw new Exception("Database connection failed. Please check the configuration.");
         }
     }
 }
 
 // Database class wrapper - only declare if not already declared
 if (!class_exists('Database')) {
+    /**
+     * A wrapper class for database operations, supporting environment-specific connections.
+     */
     class Database {
-        private $host = 'localhost';
-        private $db_name = 'student';
-        private $username = 'root';
-        private $password = '';
+        private $host;
+        private $db_name;
+        private $username;
+        private $password;
         private $conn;
 
+        public function __construct() {
+            global $db_host, $db_name, $db_username, $db_password;
+            $this->host = $db_host;
+            $this->db_name = $db_name;
+            $this->username = $db_username;
+            $this->password = $db_password;
+        }
+
+        /**
+         * Gets the database connection, initializing it if necessary.
+         * @return PDO|null The database connection object or null on failure.
+         */
         public function getConnection() {
-            $this->conn = null;
-            try {
-                $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
-                $this->conn->exec("set names utf8");
-                $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                
-                // Initialize database tables and demo users
-                $this->initializeDemoData();
-                
-            } catch(PDOException $exception) {
-                error_log("Database connection error: " . $exception->getMessage());
-                echo "Connection error. Please check configuration.";
+            if ($this->conn === null) {
+                try {
+                    $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
+                    $this->conn->exec("set names utf8");
+                    $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                } catch(PDOException $exception) {
+                    error_log("Database connection error: " . $exception->getMessage());
+                    // Return null or handle the error as needed
+                    return null;
+                }
             }
             return $this->conn;
-        }
-        
-        private function initializeDemoData() {
-            try {
-                // Check if admin user exists
-                $checkAdmin = $this->conn->prepare("SELECT COUNT(*) FROM users WHERE username = 'admin'");
-                $checkAdmin->execute();
-                
-                if ($checkAdmin->fetchColumn() == 0) {
-                    $adminPassword = password_hash('admin123', PASSWORD_DEFAULT);
-                    $insertAdmin = $this->conn->prepare("INSERT INTO users (username, email, password, role, name, phone, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $insertAdmin->execute(['admin', 'admin@example.com', $adminPassword, 'admin', 'System Administrator', '9999999999', 'active']);
-                }
-                
-                // Check if student user exists
-                $checkStudent = $this->conn->prepare("SELECT COUNT(*) FROM users WHERE username = '9999999999'");
-                $checkStudent->execute();
-                
-                if ($checkStudent->fetchColumn() == 0) {
-                    $studentPassword = password_hash('softpro@123', PASSWORD_DEFAULT);
-                    $insertStudent = $this->conn->prepare("INSERT INTO users (username, email, password, role, name, phone, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $insertStudent->execute(['9999999999', 'student@example.com', $studentPassword, 'student', 'Demo Student', '9999999999', 'active']);
-                }
-                
-            } catch(PDOException $e) {
-                error_log("Demo data initialization error: " . $e->getMessage());
-            }
         }
     }
 }
 
+// --- Database Schema Initialization ---
+
 // Create database tables if they don't exist
 if (!function_exists('createTables')) {
+    /**
+     * Creates necessary database tables if they do not already exist.
+     * This function should be called once during application setup.
+     */
     function createTables() {
         try {
-            $database = new Database();
-            $db = $database->getConnection();
+            $db = getConnection();
             
             // Users table
             $createUsers = "CREATE TABLE IF NOT EXISTS users (
@@ -235,12 +249,20 @@ if (!function_exists('createTables')) {
             return true;
             
         } catch(PDOException $exception) {
-            echo "Table creation error: " . $exception->getMessage();
+            // In a real application, you would log this error
+            // For this example, we'll just return false
             return false;
         }
     }
 }
 
-// Initialize database
-createTables();
+// --- Initial Setup ---
+
+// Run table creation logic only if the 'setup_done' flag is not set
+if (!file_exists(__DIR__ . '/.setup_done')) {
+    if (createTables()) {
+        // Create a flag file to indicate that setup is complete
+        file_put_contents(__DIR__ . '/.setup_done', 'Setup completed on ' . date('Y-m-d H:i:s'));
+    }
+}
 ?>

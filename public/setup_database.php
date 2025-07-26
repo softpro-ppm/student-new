@@ -1,9 +1,10 @@
 <?php
 // Fixed Database Schema and Setup for Student Management System
-require_once '../config/database-simple.php';
+require_once '../config/database.php';
 
 try {
-    $db = getConnection();
+    $database = new Database();
+    $db = $database->getConnection();
     if (!$db) {
         throw new Exception('Database connection failed!');
     }

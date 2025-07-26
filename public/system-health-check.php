@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require_once '../config/database-simple.php';
+require_once '../config/database.php';
 
 echo "<!DOCTYPE html>
 <html lang='en'>
@@ -42,7 +42,8 @@ $allGood = true;
 echo "<div class='health-check'>
     <h3><i class='fas fa-database'></i> Database Connection</h3>";
 try {
-    $db = getConnection();
+    $database = new Database();
+    $db = $database->getConnection();
     checkStatus(true, "Database connection successful", "");
 } catch (Exception $e) {
     checkStatus(false, "", "Database connection failed: " . $e->getMessage());

@@ -1,7 +1,7 @@
 <?php
 // Reports Management - v2.0
 session_start();
-require_once '../config/database-v2.php';
+require_once '../config/database.php';
 
 $currentUser = ['role' => 'admin', 'name' => 'Administrator'];
 $message = '';
@@ -16,7 +16,8 @@ $center_filter = $_GET['center'] ?? '';
 $export = $_GET['export'] ?? '';
 
 try {
-    $conn = getV2Connection();
+    $database = new Database();
+    $conn = $database->getConnection();
     
     // Build filter conditions
     $whereConditions = ["s.status != 'deleted'"];

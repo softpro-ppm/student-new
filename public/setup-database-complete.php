@@ -8,7 +8,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require_once '../config/database-simple.php';
+require_once '../config/database.php';
 
 // Prevent table creation during normal operations
 $_SESSION['skip_table_creation'] = true;
@@ -38,7 +38,8 @@ echo "<!DOCTYPE html>
         <div class='card-body'>";
 
 try {
-    $db = getConnection();
+    $database = new Database();
+    $db = $database->getConnection();
     echo "<div class='alert alert-success'><i class='fas fa-check-circle me-2'></i>Database connection successful</div>";
     
     // Define all table creation queries

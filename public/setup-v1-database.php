@@ -1,9 +1,10 @@
 <?php
-require_once '../config/database-v1.php';
+require_once '../config/database.php';
 
 function importOldDatabase() {
     try {
-        $conn = getOldConnection();
+        $database = new Database();
+        $conn = $database->getConnection();
         echo "Connected to the old database successfully.<br>";
 
         $sqlFile = '../u820431346_smis.sql';

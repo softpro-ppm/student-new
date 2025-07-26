@@ -13,7 +13,7 @@ session_start();
 
 // Include required files
 require_once '../includes/auth.php';
-require_once '../config/database-simple.php';
+require_once '../config/database.php';
 
 // Security checks
 if (!isLoggedIn()) {
@@ -42,7 +42,8 @@ $breadcrumbs = [
 
 // Initialize database connection
 try {
-    $db = getConnection();
+    $database = new Database();
+    $db = $database->getConnection();
     if (!$db) {
         throw new Exception('Database connection failed');
     }

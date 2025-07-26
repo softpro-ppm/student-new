@@ -5,31 +5,27 @@ ini_set('display_errors', 1);
 
 echo "<h1>Database Class Conflict Test</h1>";
 
-echo "<p>Testing database-simple.php inclusion...</p>";
+echo "<p>Testing database.php inclusion...</p>";
 
 try {
-    require_once '../config/database-simple.php';
-    echo "<p style='color: green;'>✓ database-simple.php loaded successfully</p>";
-    
+    require_once '../config/database.php';
+    echo "<p style='color: green;'>✓ database.php loaded successfully</p>";
+
     if (class_exists('Database')) {
         echo "<p style='color: green;'>✓ Database class exists</p>";
-    } else {
-        echo "<p style='color: orange;'>⚠ Database class not found</p>";
-    }
-    
-    if (function_exists('getConnection')) {
-        echo "<p style='color: green;'>✓ getConnection function exists</p>";
-        
-        $db = getConnection();
+        $database = new Database();
+        $db = $database->getConnection();
+
         if ($db) {
             echo "<p style='color: green;'>✓ Database connection successful</p>";
         } else {
             echo "<p style='color: red;'>✗ Database connection failed</p>";
         }
+
     } else {
-        echo "<p style='color: red;'>✗ getConnection function not found</p>";
+        echo "<p style='color: red;'>✗ Database class not found in database.php</p>";
     }
-    
+
 } catch (Exception $e) {
     echo "<p style='color: red;'>✗ Error: " . $e->getMessage() . "</p>";
 }

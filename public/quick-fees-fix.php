@@ -4,7 +4,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-require_once '../config/database-simple.php';
+require_once '../config/database.php';
 
 echo "<!DOCTYPE html>
 <html lang='en'>
@@ -33,7 +33,8 @@ function logMessage($message, $type = 'info') {
 }
 
 try {
-    $db = getConnection();
+    $database = new Database();
+    $db = $database->getConnection();
     logMessage("Database connection successful", 'success');
     
     // Check if fees table exists

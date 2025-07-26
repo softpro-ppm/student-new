@@ -5,7 +5,7 @@
  */
 session_start();
 require_once '../includes/auth.php';
-require_once '../config/database-simple.php';
+require_once '../config/database.php';
 
 // Check if user is logged in
 if (!isLoggedIn()) {
@@ -25,7 +25,8 @@ if (!in_array($userRole, ['admin', 'training_partner'])) {
 }
 
 // Initialize database connection
-$db = getConnection();
+$database = new Database();
+$db = $database->getConnection();
 if (!$db) {
     die('Database connection failed');
 }
