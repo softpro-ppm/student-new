@@ -1,10 +1,16 @@
 <?php
 // Dashboard v2.0 - Student Management Information System
 session_start();
-require_once '../config/database-v2.php';
+require_once '../config/database.php';
+require_once '../includes/auth.php';
 
-// For now, we'll simulate admin access. Later you can implement proper authentication
-$currentUser = ['role' => 'admin', 'name' => 'Administrator'];
+// Check if user is logged in
+if (!isLoggedIn()) {
+    header('Location: login.php');
+    exit();
+}
+
+$currentUser = getCurrentUser();
 
 // Start output buffering to capture content
 ob_start();
@@ -20,7 +26,8 @@ $stats = [
 ];
 
 try {
-    $conn = getV2Connection();
+    $database = new Database();
+    $conn = $database->getConnection();
     
     // Training Centers count
     $stmt = $conn->query("SELECT COUNT(*) FROM training_centers WHERE status = 'active'");
